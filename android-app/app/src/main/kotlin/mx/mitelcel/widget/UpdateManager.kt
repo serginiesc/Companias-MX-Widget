@@ -26,9 +26,10 @@ class UpdateManager(
      * Bloqueante. Consulta GitHub como máximo cada [CHECK_INTERVAL_MS] (la API sin cuenta permite
      * 60 consultas por hora); entre consultas devuelve lo último que encontró.
      */
-    fun check(): ReleaseInfo? {
+    fun check(force: Boolean = false): ReleaseInfo? {
         val now = System.currentTimeMillis()
-        if (now - prefs.getLong(KEY_LAST_CHECK, 0) < CHECK_INTERVAL_MS) return pendingRelease()
+        // force = el usuario tocó "Buscar actualizaciones": no hacerle esperar al siguiente intervalo.
+        if (!force && now - prefs.getLong(KEY_LAST_CHECK, 0) < CHECK_INTERVAL_MS) return pendingRelease()
 
         val found = runCatching { checker.findUpdate(currentVersion) }.getOrNull()
         prefs.edit()
@@ -71,7 +72,7 @@ class UpdateManager(
     }
 
     private companion object {
-        const val CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000L
+        const val CHECK_INTERVAL_MS = 3 * 60 * 60 * 1000L
         const val KEY_LAST_CHECK = "last_check"
         const val KEY_VERSION = "pending_version"
         const val KEY_URL = "pending_url"

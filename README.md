@@ -47,7 +47,7 @@ Luego sigue los pasos de [Uso](#uso). Requiere **Android 8.0 o superior**.
 ## Instalación avanzada
 
 ### Actualizar
-Desde la v1.4, la app avisa sola: al abrirla aparece **"Hay una versión nueva → Actualizar"**. La primera vez Android te pedirá permitir que *Mis Datos MX* instale apps; después solo confirmas **Actualizar**. Tus líneas y widgets se conservan.
+Desde la v1.4, la app avisa sola: al abrirla aparece **"Hay una versión nueva → Actualizar"** (revisa cada 3 h; para revisar en ese momento toca **Buscar actualizaciones**, hasta abajo de la app). La primera vez Android te pedirá permitir que *Mis Datos MX* instale apps; después solo confirmas **Actualizar**. Tus líneas y widgets se conservan.
 
 También puedes descargar el APK nuevo con el botón de arriba e instalarlo encima.
 

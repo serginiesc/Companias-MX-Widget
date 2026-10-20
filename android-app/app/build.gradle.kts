@@ -17,8 +17,8 @@ android {
         applicationId = "mx.mitelcel.widget"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.5-beta"
+        versionCode = 8
+        versionName = "1.5"
     }
 
     signingConfigs {

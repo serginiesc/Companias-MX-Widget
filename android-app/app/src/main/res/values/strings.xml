@@ -41,4 +41,8 @@
     <string name="config_layout">Diseño</string>
     <string name="layout_gauge">Medidor</string>
     <string name="layout_bar">Barra</string>
+    <string name="check_update">Buscar actualizaciones</string>
+    <string name="update_checking">Buscando actualizaciones…</string>
+    <string name="update_none">Ya tienes la versión más reciente (%1$s).</string>
+    <string name="version_label">Versión %1$s</string>
 </resources>

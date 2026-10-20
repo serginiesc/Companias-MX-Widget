@@ -106,6 +106,8 @@ class MainActivity : AppCompatActivity() {
         saveButton.setOnClickListener { onSaveClicked() }
         cancelEditButton.setOnClickListener { resetForm() }
         setupPinButton(findViewById(R.id.pin_button))
+        findViewById<MaterialButton>(R.id.check_update_button).setOnClickListener { checkForUpdate(manual = true) }
+        findViewById<TextView>(R.id.version_text).text = getString(R.string.version_label, BuildConfig.VERSION_NAME)
 
         renderAccounts()
         showPreview(repository.accounts.list().firstOrNull())
@@ -132,9 +134,16 @@ class MainActivity : AppCompatActivity() {
 
     // ------------------------------------------------------------- actualizaciones
 
-    private fun checkForUpdate() {
+    /** @param manual true = el usuario tocó "Buscar actualizaciones": revisa ya y le dice el resultado. */
+    private fun checkForUpdate(manual: Boolean = false) {
         lifecycleScope.launch {
-            val release = withContext(Dispatchers.IO) { updateManager.check() } ?: return@launch
+            if (manual) statusText.setText(R.string.update_checking)
+            val release = withContext(Dispatchers.IO) { updateManager.check(force = manual) }
+            if (release == null) {
+                if (manual) statusText.text = getString(R.string.update_none, BuildConfig.VERSION_NAME)
+                return@launch
+            }
+            if (manual) statusText.text = ""
             findViewById<TextView>(R.id.update_text).text = getString(R.string.update_available, release.version)
             findViewById<View>(R.id.update_card).visibility = View.VISIBLE
             findViewById<MaterialButton>(R.id.update_button).setOnClickListener { installUpdate(release) }
