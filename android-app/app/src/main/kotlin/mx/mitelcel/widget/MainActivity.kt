@@ -137,7 +137,9 @@ class MainActivity : AppCompatActivity() {
     private fun showPreview(entry: UsageEntry) {
         previewContainer.removeAllViews()
         // RemoteViews.apply(context, parent) infla la vista real (no es la función "apply" de Kotlin).
-        previewContainer.addView(WidgetRenderer.build(this, entry).apply(this, previewContainer))
+        // Se usa applicationContext a propósito: con la Activity, AppCompat cambia ImageView por
+        // AppCompatImageView al inflar, y RemoteViews no puede llamar setImageBitmap en esa clase.
+        previewContainer.addView(WidgetRenderer.build(this, entry).apply(applicationContext, previewContainer))
     }
 
     private fun setBusy(busy: Boolean) {
