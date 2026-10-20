@@ -42,19 +42,28 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Opcional: firma siempre con la MISMA llave para poder actualizar la app sin desinstalarla.
+      # Firma siempre con la MISMA llave para poder actualizar la app sin desinstalarla.
       # Sin este secreto, cada ejecución genera una llave nueva y Android rechaza la actualización.
-      - name: Restaurar llave de firma (si existe el secreto)
+      # app/build.gradle.kts usa SIGNING_KEYSTORE de forma explícita (no la ubicación por defecto).
+      - name: Restaurar y validar llave de firma (si existe el secreto)
         env:
           DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
-          if [ -n "$DEBUG_KEYSTORE_B64" ]; then
-            mkdir -p ~/.android
-            echo "$DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
-            echo "Usando llave de firma fija."
-          else
+          if [ -z "$DEBUG_KEYSTORE_B64" ]; then
             echo "Sin secreto DEBUG_KEYSTORE_B64: se usará una llave temporal."
+            exit 0
           fi
+          KS="$RUNNER_TEMP/signing.keystore"
+          echo "$DEBUG_KEYSTORE_B64" | base64 -d > "$KS" || { echo "::error::DEBUG_KEYSTORE_B64 no es Base64 válido."; exit 1; }
+          if ! keytool -list -keystore "$KS" -storepass android -alias androiddebugkey > /dev/null 2>&1; then
+            echo "::error::DEBUG_KEYSTORE_B64 no contiene un keystore válido (alias androiddebugkey, contraseña android)."
+            exit 1
+          fi
+          # La huella es pública (no es secreta): sirve para comprobar que todas las versiones usan la misma llave.
+          FP=$(keytool -list -v -keystore "$KS" -storepass android -alias androiddebugkey | sed -n 's/.*SHA256: //p' | tr -d ':' | tr 'A-F' 'a-f')
+          echo "SIGNING_KEYSTORE=$KS" >> "$GITHUB_ENV"
+          echo "SIGNING_SHA256=$FP" >> "$GITHUB_ENV"
+          echo "::notice title=Llave de firma fija::SHA-256 $FP"
 
       # Un Release lo instalan otras personas: sin llave fija, cada versión tendría otra firma
       # y nadie podría actualizar sin desinstalar. Y la etiqueta debe coincidir con versionName.
@@ -63,7 +72,7 @@ jobs:
         env:
           DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
-          if [ -z "$DEBUG_KEYSTORE_B64" ]; then
+          if [ -z "$SIGNING_KEYSTORE" ]; then
             echo "::error::Configura el secreto DEBUG_KEYSTORE_B64 antes de publicar un Release (ver README)."
             exit 1
           fi
@@ -88,6 +97,19 @@ jobs:
           grep -E "^e: |AAPT: error|error: resource|ERROR:|What went wrong" -A 3 build.log | head -40 | while IFS= read -r line; do
             echo "::error title=Compilación::${line}"
           done
+
+      # Comprueba el APK YA firmado: si no trae la huella de la llave fija, no se publica.
+      # (Así se habría detectado el problema de la v1.3/v1.4.)
+      - name: Verificar firma del APK
+        if: env.SIGNING_KEYSTORE != ''
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          ACTUAL=$("$APKSIGNER" verify --print-certs app/build/outputs/apk/debug/app-debug.apk | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
+          echo "APK firmado con: $ACTUAL"
+          if [ "$ACTUAL" != "$SIGNING_SHA256" ]; then
+            echo "::error::El APK no está firmado con la llave fija (esperado $SIGNING_SHA256, obtenido $ACTUAL)."
+            exit 1
+          fi
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4

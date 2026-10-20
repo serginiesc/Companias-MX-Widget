@@ -4,6 +4,11 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// Llave fija para firmar (CI la descifra del secreto DEBUG_KEYSTORE_B64 y deja su ruta aquí).
+// Se configura EXPLÍCITAMENTE: depender de la ubicación por defecto de la llave de debug hizo que
+// la v1.3 y la v1.4 salieran firmadas con llaves temporales distintas.
+val fixedKeystore: File? = System.getenv("SIGNING_KEYSTORE")?.let { file(it) }?.takeIf { it.exists() }
+
 android {
     namespace = "mx.mitelcel.widget"
     compileSdk = 35
@@ -12,11 +17,25 @@ android {
         applicationId = "mx.mitelcel.widget"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.4.1"
+    }
+
+    signingConfigs {
+        if (fixedKeystore != null) {
+            create("fixed") {
+                storeFile = fixedKeystore
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            if (fixedKeystore != null) signingConfig = signingConfigs.getByName("fixed")
+        }
         release {
             isMinifyEnabled = false
         }
