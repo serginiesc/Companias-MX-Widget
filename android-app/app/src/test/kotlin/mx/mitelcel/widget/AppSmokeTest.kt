@@ -6,6 +6,11 @@ import android.content.Intent
 import android.widget.FrameLayout
 import androidx.test.core.app.ApplicationProvider
 import mx.mitelcel.widget.core.UsageEntry
+import mx.mitelcel.widget.data.AccountStore
+import mx.mitelcel.widget.data.SecretBox
+import mx.mitelcel.widget.data.WidgetConfig
+import mx.mitelcel.widget.data.WidgetConfigStore
+import mx.mitelcel.widget.widget.Panel
 import mx.mitelcel.widget.widget.WidgetRenderer
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,12 +40,31 @@ class AppSmokeTest {
     }
 
     @Test
-    fun `el widget se dibuja transparente, a medias y sólido`() {
+    fun `la configuración abre con dos líneas marcadas`() {
+        val accounts = AccountStore(context, object : SecretBox {
+            override fun encrypt(plain: String) = plain
+            override fun decrypt(encoded: String) = encoded
+        })
+        val a = accounts.save("Mía", "5511111111", "x")
+        val b = accounts.save("Esposa", "5522222222", "y")
+        WidgetConfigStore(context).save(8, WidgetConfig(listOf(a.id, b.id), 40))
+
+        val intent = Intent(context, WidgetConfigActivity::class.java)
+            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 8)
+        Robolectric.buildActivity(WidgetConfigActivity::class.java, intent).setup()
+    }
+
+    @Test
+    fun `el widget se dibuja con 0 1 y 2 líneas y distintas opacidades`() {
         val parent = FrameLayout(context)
         val withData = UsageEntry.errorFallback.copy(totalMB = 15000.0, consumedMB = 9500.0, availableMB = 5500.0, daysLeft = 9)
+        val mine = Panel(withData, "Mía", "a")
+        val other = Panel(UsageEntry.errorFallback, "Esposa", "b")
         listOf(0, 60, 100).forEach { opacity ->
-            WidgetRenderer.build(context, UsageEntry.errorFallback, "Mía", opacity).apply(context, parent)
-            WidgetRenderer.build(context, withData, "Esposa", opacity, appWidgetId = 3, accountId = "abc").apply(context, parent)
+            WidgetRenderer.build(context, emptyList(), opacity).apply(context, parent)
+            WidgetRenderer.build(context, listOf(mine), opacity, appWidgetId = 3).apply(context, parent)
+            WidgetRenderer.build(context, listOf(mine, other), opacity, appWidgetId = 3, statusText = "Actualizando…", statusAccountId = "b")
+                .apply(context, parent)
         }
     }
 

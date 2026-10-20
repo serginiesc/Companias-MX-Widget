@@ -18,9 +18,9 @@
     <string name="alias_hint">Apodo (ej. Mía, Esposa)</string>
     <string name="keep_password_hint">Déjala vacía para conservar la contraseña guardada.</string>
     <string name="cancel_edit">Cancelar edición</string>
-    <string name="widget_tip">Toca el encabezado del widget para elegir qué línea muestra y su transparencia.</string>
+    <string name="widget_tip">Toca el encabezado del widget para elegir qué líneas muestra (una o dos) y su transparencia. Con dos líneas, agrándalo a 4×2.</string>
     <string name="config_title">Configurar widget</string>
-    <string name="config_line">Línea a mostrar</string>
+    <string name="config_line">Líneas a mostrar (máximo 2)</string>
     <string name="config_no_accounts">No hay líneas guardadas. Agrega una primero.</string>
     <string name="config_manage_accounts">Administrar líneas</string>
     <string name="config_opacity">Opacidad del fondo: %1$d%%</string>

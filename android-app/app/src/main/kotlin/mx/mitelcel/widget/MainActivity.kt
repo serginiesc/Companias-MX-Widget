@@ -24,6 +24,7 @@ import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.Account
 import mx.mitelcel.widget.data.UsageRepository
 import mx.mitelcel.widget.widget.MiTelcelWidgetProvider
+import mx.mitelcel.widget.widget.Panel
 import mx.mitelcel.widget.widget.WidgetRenderer
 import mx.mitelcel.widget.work.RefreshWorker
 
@@ -193,7 +194,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPreview(account: Account?, entry: UsageEntry = repository.cachedOrFallback(account?.id)) {
-        val views = WidgetRenderer.build(applicationContext, entry, account?.alias ?: "Mi Telcel", opacityPercent = 100)
+        val panel = Panel(entry, account?.alias ?: "Mi Telcel", account?.id)
+        val views = WidgetRenderer.build(applicationContext, listOf(panel), opacityPercent = 100)
         previewContainer.removeAllViews()
         // RemoteViews.apply(context, parent) infla la vista real (no es la función "apply" de Kotlin).
         // Se usa applicationContext a propósito: con la Activity, AppCompat cambia ImageView por

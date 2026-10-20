@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Los widgets solo admiten vistas simples (FrameLayout, LinearLayout, TextView, ImageView...).
+    Contenedor del widget: fondo + fila donde se agregan los paneles (1 por línea) desde código.
     El fondo es un ImageView aparte (widget_bg) para poder cambiar su transparencia con setImageAlpha.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -17,113 +17,10 @@
         android:src="@drawable/widget_background" />
 
     <LinearLayout
+        android:id="@+id/widget_panels"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="12dp">
-
-        <LinearLayout
-            android:id="@+id/widget_header"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_title"
-                    style="@style/WidgetText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:singleLine="true"
-                    android:text="@string/app_short_name"
-                    android:textColor="@color/white"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_cutoff"
-                    style="@style/WidgetText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:singleLine="true"
-                    android:textColor="@color/subtitle_gray"
-                    android:textSize="11sp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/widget_days"
-                style="@style/WidgetText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/pill_background"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="3dp"
-                android:textColor="@color/white"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/widget_body"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <ImageView
-                android:id="@+id/widget_gauge"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginTop="4dp"
-                android:layout_weight="1"
-                android:contentDescription="@string/gauge_description"
-                android:scaleType="fitCenter" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/widget_spent"
-                    style="@style/WidgetText"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:singleLine="true"
-                    android:textColor="@color/spent_red"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_daily"
-                    style="@style/WidgetText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:singleLine="true"
-                    android:textColor="@color/brand_green"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/widget_footer"
-                style="@style/WidgetText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:textColor="@color/subtitle_gray"
-                android:textSize="10sp" />
-        </LinearLayout>
-    </LinearLayout>
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="12dp" />
 </FrameLayout>

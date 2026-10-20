@@ -16,8 +16,8 @@ Widget de pantalla de inicio que muestra los **GB disponibles (Plan + Promo)**, 
 ## Uso
 
 1. Abre **Mi Telcel Widget** y agrega una o varias líneas (apodo, número y contraseña). Pulsa **Guardar y actualizar**.
-2. Agrega el widget: mantén presionado el fondo de la pantalla → *Widgets* → *Mi Telcel Widget*. Se abre **Configurar widget**, donde eliges la **línea** y la **opacidad del fondo** (0% = transparente).
-3. ¿Dos líneas? Agrega dos widgets y elige una línea distinta en cada uno.
+2. Agrega el widget: mantén presionado el fondo de la pantalla → *Widgets* → *Mi Telcel Widget*. Se abre **Configurar widget**, donde eliges **una o dos líneas** y la **opacidad del fondo** (0% = transparente).
+3. ¿Dos líneas? Marca las dos en **Configurar widget** y se verán lado a lado en el mismo widget (agrándalo a 4×2). También puedes poner dos widgets separados.
 4. Si tocas el medidor, se actualiza esa línea. Si tocas el encabezado, se abre la configuración de ese widget. Además se actualiza solo cada 30 minutos (una línea a la vez, para no abrir dos sesiones con Telcel al mismo tiempo).
 
 ## Actualizar la app sin desinstalarla (opcional)

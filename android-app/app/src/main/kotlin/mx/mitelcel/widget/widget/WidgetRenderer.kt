@@ -16,26 +16,53 @@ import mx.mitelcel.widget.data.UsageCache
 import mx.mitelcel.widget.data.WidgetConfig
 import mx.mitelcel.widget.data.WidgetConfigStore
 
-/** Convierte datos en la vista del widget. No sabe nada de red. */
+/** Lo que se dibuja de UNA línea dentro del widget. */
+data class Panel(val entry: UsageEntry, val title: String, val accountId: String? = null)
+
+/**
+ * Convierte datos en la vista del widget. No sabe nada de red.
+ *
+ * Estructura: un contenedor (widget_mitelcel: fondo + fila vacía) al que se le agrega un
+ * panel (widget_panel) por cada línea con RemoteViews.addView. Así 1 o 2 líneas usan el mismo código.
+ */
 object WidgetRenderer {
 
-    /** Construye la vista. [appWidgetId] = null para vistas previas (sin acciones al tocar). */
+    /**
+     * @param appWidgetId null = vista previa (sin acciones al tocar).
+     * @param statusText si viene, reemplaza el pie de página de los paneles de [statusAccountId]
+     *                   (o de todos, si [statusAccountId] es null). Ej. "Actualizando…".
+     */
     fun build(
         context: Context,
-        entry: UsageEntry,
-        title: String,
+        panels: List<Panel>,
         opacityPercent: Int,
         appWidgetId: Int? = null,
-        accountId: String? = null,
+        statusText: String? = null,
+        statusAccountId: String? = null,
     ): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_mitelcel)
-        val hasData = entry.totalMB > 0
-
+        val root = RemoteViews(context.packageName, R.layout.widget_mitelcel)
         // RemoteViews no permite cambiar la transparencia de un "background", pero sí la de una
         // imagen: por eso el fondo es un ImageView y usamos setImageAlpha (0-255).
-        views.setInt(R.id.widget_bg, "setImageAlpha", opacityPercent.coerceIn(0, 100) * 255 / 100)
+        root.setInt(R.id.widget_bg, "setImageAlpha", opacityPercent.coerceIn(0, 100) * 255 / 100)
 
-        views.setTextViewText(R.id.widget_title, title)
+        root.removeAllViews(R.id.widget_panels)
+        panels.ifEmpty { listOf(Panel(UsageEntry.errorFallback, "Mi Telcel")) }
+            .forEachIndexed { index, panel ->
+                val showStatus = statusText != null && (statusAccountId == null || statusAccountId == panel.accountId)
+                root.addView(
+                    R.id.widget_panels,
+                    buildPanel(context, panel, appWidgetId, index, if (showStatus) statusText else null),
+                )
+            }
+        return root
+    }
+
+    private fun buildPanel(context: Context, panel: Panel, appWidgetId: Int?, index: Int, statusText: String?): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.widget_panel)
+        val entry = panel.entry
+        val hasData = entry.totalMB > 0
+
+        views.setTextViewText(R.id.widget_title, panel.title)
         views.setTextViewText(
             R.id.widget_cutoff,
             if (hasData) "Corte ${entry.shortCutoffDate}" else entry.cutoffDate,
@@ -47,23 +74,33 @@ object WidgetRenderer {
         views.setImageViewBitmap(R.id.widget_gauge, GaugeRenderer.render(entry))
         views.setTextViewText(R.id.widget_spent, "● ${entry.spentShortText} (${entry.percentUsed}%)")
         views.setTextViewText(R.id.widget_daily, "● ${entry.dailyAllowanceText}")
-        views.setTextViewText(R.id.widget_footer, entry.footerText)
+        views.setTextViewText(R.id.widget_footer, statusText ?: entry.footerText)
 
         if (appWidgetId != null) {
-            // Encabezado = configurar ESTE widget (línea y transparencia); resto = actualizar.
+            // Encabezado = configurar ESTE widget; resto del panel = actualizar ESA línea.
             views.setOnClickPendingIntent(R.id.widget_header, configureIntent(context, appWidgetId))
-            views.setOnClickPendingIntent(R.id.widget_body, refreshIntent(context, appWidgetId, accountId))
+            views.setOnClickPendingIntent(R.id.widget_body, refreshIntent(context, appWidgetId, index, panel.accountId))
         }
         return views
     }
 
-    /** Redibuja un widget con la línea y opacidad que tiene configuradas. */
-    fun update(context: Context, manager: AppWidgetManager, appWidgetId: Int) {
+    /** Redibuja un widget con las líneas y opacidad que tiene configuradas. */
+    fun update(
+        context: Context,
+        manager: AppWidgetManager,
+        appWidgetId: Int,
+        statusText: String? = null,
+        statusAccountId: String? = null,
+    ) {
         val config = WidgetConfigStore(context).get(appWidgetId)
-        val account = resolveAccount(AccountStore(context), config)
-        val entry = account?.let { UsageCache(context).load(it.id) } ?: UsageEntry.errorFallback
-        val views = build(context, entry, account?.alias ?: "Mi Telcel", config.opacityPercent, appWidgetId, account?.id)
-        manager.updateAppWidget(appWidgetId, views)
+        val cache = UsageCache(context)
+        val panels = resolveAccounts(AccountStore(context), config).map { account ->
+            Panel(cache.load(account.id) ?: UsageEntry.errorFallback, account.alias, account.id)
+        }
+        manager.updateAppWidget(
+            appWidgetId,
+            build(context, panels, config.opacityPercent, appWidgetId, statusText, statusAccountId),
+        )
     }
 
     fun updateAll(context: Context) {
@@ -71,32 +108,29 @@ object WidgetRenderer {
         widgetIds(context).forEach { update(context, manager, it) }
     }
 
-    /** Cambia solo el pie de página ("Actualizando…") de los widgets de esa línea. */
+    /** Muestra un aviso ("Actualizando…") en el pie de los paneles de esa línea (null = todas). */
     fun showStatus(context: Context, accountId: String?, text: String) {
         val manager = AppWidgetManager.getInstance(context)
         val accounts = AccountStore(context)
         val configs = WidgetConfigStore(context)
         widgetIds(context)
-            .filter { accountId == null || resolveAccount(accounts, configs.get(it))?.id == accountId }
-            .forEach { id ->
-                val views = RemoteViews(context.packageName, R.layout.widget_mitelcel)
-                views.setTextViewText(R.id.widget_footer, text)
-                manager.partiallyUpdateAppWidget(id, views)
-            }
+            .filter { id -> accountId == null || resolveAccounts(accounts, configs.get(id)).any { it.id == accountId } }
+            .forEach { update(context, manager, it, text, accountId) }
     }
 
     /** Líneas que se ven en algún widget: son las únicas que vale la pena consultar en segundo plano. */
     fun accountIdsInUse(context: Context): Set<String> {
         val accounts = AccountStore(context)
         val configs = WidgetConfigStore(context)
-        // asList(): IntArray (arreglo de primitivos) no tiene mapNotNull; List<Int> sí.
-        return widgetIds(context).asList().mapNotNull { resolveAccount(accounts, configs.get(it))?.id }.toSet()
+        // asList(): IntArray (arreglo de primitivos) no tiene flatMap/mapNotNull; List<Int> sí.
+        return widgetIds(context).asList().flatMap { id -> resolveAccounts(accounts, configs.get(id)).map { it.id } }.toSet()
     }
 
-    /** Si la línea configurada se borró (o el widget nunca se configuró), usa la primera. */
-    fun resolveAccount(accounts: AccountStore, config: WidgetConfig): Account? {
+    /** Líneas configuradas que aún existen; si ninguna (o el widget no se configuró), la primera guardada. */
+    fun resolveAccounts(accounts: AccountStore, config: WidgetConfig): List<Account> {
         val all = accounts.list()
-        return all.firstOrNull { it.id == config.accountId } ?: all.firstOrNull()
+        val chosen = config.accountIds.mapNotNull { id -> all.firstOrNull { it.id == id } }
+        return chosen.ifEmpty { listOfNotNull(all.firstOrNull()) }.take(WidgetConfig.MAX_LINES)
     }
 
     private fun widgetIds(context: Context): IntArray =
@@ -114,14 +148,14 @@ object WidgetRenderer {
         )
 
     /**
-     * requestCode = appWidgetId A PROPÓSITO. Android considera "el mismo" PendingIntent si coinciden
-     * requestCode e Intent (los extras NO cuentan). Con un requestCode fijo, el widget 2 pisaría al
-     * widget 1 y tocar cualquiera actualizaría siempre la misma línea.
+     * requestCode único por widget Y por panel. Android considera "el mismo" PendingIntent si
+     * coinciden requestCode e Intent (los extras NO cuentan). Si se repitiera, tocar el panel
+     * de una línea actualizaría la otra.
      */
-    private fun refreshIntent(context: Context, appWidgetId: Int, accountId: String?): PendingIntent =
+    private fun refreshIntent(context: Context, appWidgetId: Int, panelIndex: Int, accountId: String?): PendingIntent =
         PendingIntent.getBroadcast(
             context,
-            appWidgetId,
+            appWidgetId * WidgetConfig.MAX_LINES + panelIndex,
             Intent(context, MiTelcelWidgetProvider::class.java)
                 .setAction(MiTelcelWidgetProvider.ACTION_REFRESH)
                 .putExtra(MiTelcelWidgetProvider.EXTRA_ACCOUNT_ID, accountId),

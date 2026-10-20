@@ -83,14 +83,22 @@ class AccountStoreTest {
     }
 
     @Test
-    fun `la configuración del widget tiene valores por defecto y se puede borrar`() {
+    fun `la configuración del widget guarda hasta 2 líneas y se puede borrar`() {
         val configs = WidgetConfigStore(context)
-        assertEquals(WidgetConfig(null, 100), configs.get(42))
+        assertEquals(WidgetConfig(emptyList(), 100), configs.get(42))
 
-        configs.save(42, WidgetConfig("abc", 140))
-        assertEquals(WidgetConfig("abc", 100), configs.get(42)) // se limita a 0..100
+        configs.save(42, WidgetConfig(listOf("a", "b", "c"), 140))
+        assertEquals(WidgetConfig(listOf("a", "b"), 100), configs.get(42)) // máx. 2 líneas, opacidad 0..100
 
         configs.delete(42)
-        assertEquals(WidgetConfig(null, 100), configs.get(42))
+        assertEquals(WidgetConfig(emptyList(), 100), configs.get(42))
+    }
+
+    @Test
+    fun `lee la configuración de una sola línea de la versión 1_2`() {
+        context.getSharedPreferences("widget_configs", Context.MODE_PRIVATE).edit()
+            .putString("account_9", "vieja").putInt("opacity_9", 40).commit()
+
+        assertEquals(WidgetConfig(listOf("vieja"), 40), WidgetConfigStore(context).get(9))
     }
 }

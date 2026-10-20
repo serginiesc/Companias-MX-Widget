@@ -32,11 +32,13 @@
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:visibility="gone" />
 
-        <RadioGroup
-            android:id="@+id/account_group"
+        <!-- Una casilla por línea (se llenan desde código). Máximo 2. -->
+        <LinearLayout
+            android:id="@+id/account_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="4dp"
+            android:orientation="vertical" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/manage_accounts_button"
@@ -62,6 +64,7 @@
 
         <!-- La vista previa va sobre un degradado que simula tu fondo de pantalla. -->
         <FrameLayout
+            android:id="@+id/preview_frame"
             android:layout_width="200dp"
             android:layout_height="200dp"
             android:layout_gravity="center_horizontal"
