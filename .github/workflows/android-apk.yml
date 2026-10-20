@@ -56,7 +56,17 @@ jobs:
         run: ./gradlew :core:test --no-daemon
 
       - name: Compilar APK
-        run: ./gradlew :app:assembleDebug --no-daemon
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --no-daemon 2>&1 | tee build.log
+
+      # Errores de Kotlin ("e: ...") y de recursos (AAPT) como anotaciones visibles en el resumen.
+      - name: Mostrar errores de compilación
+        if: failure()
+        run: |
+          grep -E "^e: |AAPT: error|error: resource|ERROR:|What went wrong" -A 3 build.log | head -40 | while IFS= read -r line; do
+            echo "::error title=Compilación::${line}"
+          done
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4
