@@ -1,6 +1,6 @@
 # Especificación del API de Mi Telcel para el Widget de iOS (2026)
 
-Este documento describe la arquitectura actual de autenticación y consumo del portal **Mi Telcel** y cómo utilizar sus endpoints REST/JWT desde el widget de **Scriptable** ([`src/MiTelcelWidget.js`](file:///Users/armandomaynez/Code/Repos/telcel-widget-agy/src/MiTelcelWidget.js)) o desde una extensión nativa **SwiftUI / WidgetKit** para obtener:
+Este documento describe la arquitectura de autenticación y consumo del portal **Mi Telcel** y sus endpoints REST/JWT, tal como los usa la app Android ([`TelcelClient.kt`](../android-app/core/src/main/kotlin/mx/mitelcel/widget/core/TelcelClient.kt) y [`HomeFlowParser.kt`](../android-app/core/src/main/kotlin/mx/mitelcel/widget/core/HomeFlowParser.kt)), para obtener:
 - **Datos del Plan Base** (`Datos de mi plan`)
 - **Datos Promocionales** (`Datos Promocionales`, p. ej. `PROMO 50% DE DATOS 24 MDP`)
 - **Total Combinado (Plan + Promo)**, **Consumo Acumulado** y **Datos Disponibles**
@@ -14,7 +14,7 @@ La arquitectura web actual de Mi Telcel separa el inicio de sesión SSO, la emis
 
 ```mermaid
 sequenceDiagram
-    participant W as iOS Widget (Scriptable / SwiftUI)
+    participant W as Widget Android (TelcelClient)
     participant SSO as WebLogin SSO (wbl.telcel-id.com:8443)
     participant SEC as Security API (mi-telcel.smapps.mx)
     participant B2F as Wave B2F Home (api.journeys.telcel.wavebybemobi.com)

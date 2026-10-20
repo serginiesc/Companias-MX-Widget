@@ -1,9 +1,8 @@
+# Credenciales y sesión del probe de la API (nunca subir)
 .env
 cookies.txt
-artifacts/*_raw.json
-artifacts/*.html
+
+# Salidas del probe: contienen datos reales de la cuenta
+artifacts/
+
 .DS_Store
-build/
-DerivedData/
-*.xcuserdata
-*.xcworkspace/xcuserdata/

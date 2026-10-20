@@ -16,6 +16,6 @@ Sigue estos pasos en orden estricto:
    *(El script ejecuta el login SSO en `wbl.telcel-id.com:8443/login`, intercambia tokens `token:mit|token:b2f` en `mi-telcel.smapps.mx/security/1.0.0/v2/token`, valida el perfil en `/users/1.0.0/v2/info/validate`, consulta el Home Flow en `api.journeys.telcel.wavebybemobi.com/api/components/flow/home` —extrayendo tanto **Datos de mi plan (`0-0-0`)** como **Datos Promocionales (`0-1-0`)** y la **Fecha de corte (`plan-details-row-template-col-2-0-0`)**—, consulta consumo/paquetes/plan y revoca el token SSO en `dev.smapps.mx:9000/sso/revoke` al salir).*
 
 3. **Análisis de Resultados y Artefactos:**
-   - Revisa el código de salida y el desglose de buckets (Plan + Promo + Vigencia) en `artifacts/probe_report.txt`.
-   - Inspecciona la estructura de llaves generada en `artifacts/schema_summary.json` (y consulta `Telcel Widget API.md` para la referencia completa de bloques).
-   - Si la prueba fue exitosa (`HTTP 200` y JSON válido), actualiza `src/MiTelcelWidget.js` (y el código Swift en `Research.md` si aplica) para sumar todas las bolsas `tabs-plans-v2-*-0-*-*` (Plan + Promo), el consumo total, los días restantes y la fecha de corte (`cutoffDate`).
+   - Revisa el código de salida y el desglose de buckets (Plan + Promo + Vigencia) en `artifacts/probe_report.txt` (carpeta ignorada por git: contiene datos de tu cuenta).
+   - Inspecciona la estructura de llaves generada en `artifacts/schema_summary.json` (y consulta `docs/telcel-api.md` para la referencia completa de bloques).
+   - Si la prueba fue exitosa (`HTTP 200` y JSON válido), actualiza `android-app/core/src/main/kotlin/mx/mitelcel/widget/core/HomeFlowParser.kt` (y su prueba `HomeFlowParserTest.kt`) para sumar todas las bolsas `tabs-plans-v2-*-0-*-*` (Plan + Promo), el consumo total, los días restantes y la fecha de corte (`cutoffDate`).

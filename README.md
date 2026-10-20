@@ -63,6 +63,9 @@ adb shell dumpsys package mx.mitelcel.widget | findstr versionName
 ```
 .
 ├── .github/workflows/android-apk.yml   CI: pruebas + compilación + APK como artefacto
+├── .agents/skills/telcel-api-probe/    Script para probar la API real de Telcel (usa .env)
+├── docs/                               Referencia de la API de Telcel (endpoints y bloques Wave B2F)
+├── AGENTS.md                           Instrucciones para asistentes de IA que trabajen en el repo
 └── android-app/
     ├── settings.gradle.kts             Módulos :core y :app
     ├── core/                           Kotlin puro (sin Android), probado con JUnit
@@ -118,6 +121,11 @@ cd android-app
 3. Pruebas de humo con Robolectric.
 
 Si algo falla, los errores del compilador y de las pruebas aparecen como **anotaciones** en el resumen de la ejecución.
+
+### Si Telcel cambia su API
+1. Copia `.env.example` a `.env` y escribe tu número y contraseña. `.env` está en `.gitignore`.
+2. Ejecuta `zsh .agents/skills/telcel-api-probe/scripts/probe_telcel.sh`. Prueba los endpoints, revoca la sesión al terminar y deja un resumen en `artifacts/`, carpeta que también ignora git.
+3. Compara con [`docs/telcel-api.md`](docs/telcel-api.md) y ajusta `HomeFlowParser.kt` o `TelcelClient.kt`, junto con sus pruebas.
 
 ### Llave de firma fija (opcional)
 Para poder actualizar la app sin desinstalarla, ni perder las líneas guardadas:
