@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.MiTelcel" parent="Theme.Material3.DayNight.NoActionBar" />
+
+    <!-- Sombra en todos los textos del widget: con fondo transparente se leen sobre cualquier wallpaper. -->
+    <style name="WidgetText">
+        <item name="android:shadowColor">#A0000000</item>
+        <item name="android:shadowDx">0</item>
+        <item name="android:shadowDy">1.5</item>
+        <item name="android:shadowRadius">4</item>
+    </style>
 </resources>

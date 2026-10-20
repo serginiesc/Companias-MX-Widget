@@ -24,11 +24,57 @@
             android:text="@string/intro"
             android:textAppearance="?attr/textAppearanceBodyMedium" />
 
+        <!-- Lista de líneas guardadas (se llena desde código). -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/my_lines"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <TextView
+            android:id="@+id/empty_accounts_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/no_lines_yet"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+        <LinearLayout
+            android:id="@+id/accounts_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <!-- Formulario para agregar o editar una línea. -->
+        <TextView
+            android:id="@+id/form_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/add_line"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/alias_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="@string/alias_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/alias_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapSentences"
+                android:maxLength="20" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/phone_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="12dp"
             android:hint="@string/phone_hint">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -60,6 +106,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@string/save_and_refresh" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cancel_edit_button"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel_edit"
+            android:visibility="gone" />
 
         <ProgressBar
             android:id="@+id/progress"
@@ -99,12 +153,12 @@
             android:layout_marginTop="16dp"
             android:text="@string/pin_widget" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/clear_button"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="match_parent"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/clear_credentials" />
+            android:layout_marginTop="4dp"
+            android:text="@string/widget_tip"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
 
         <TextView
             android:layout_width="wrap_content"

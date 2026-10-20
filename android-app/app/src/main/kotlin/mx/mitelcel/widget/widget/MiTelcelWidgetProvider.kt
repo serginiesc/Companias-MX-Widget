@@ -4,23 +4,28 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import mx.mitelcel.widget.data.UsageCache
-import mx.mitelcel.widget.core.UsageEntry
+import mx.mitelcel.widget.data.WidgetConfigStore
 import mx.mitelcel.widget.work.RefreshWorker
 
 /**
- * Recibe los eventos del sistema sobre el widget. Debe ser rápido (≈10 s máx.),
+ * Recibe los eventos del sistema sobre los widgets. Debe ser rápido (≈10 s máx.),
  * por eso NUNCA consulta a Telcel aquí: delega el trabajo de red a [RefreshWorker].
  */
 class MiTelcelWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
         // Pinta de inmediato lo último guardado y luego pide datos nuevos en segundo plano.
-        WidgetRenderer.updateAll(context, UsageCache(context).load() ?: UsageEntry.errorFallback)
+        appWidgetIds.forEach { WidgetRenderer.update(context, manager, it) }
         RefreshWorker.schedulePeriodic(context)
         // minAge de 5 min: onUpdate puede dispararse varias veces seguidas (ej. al reiniciar el
         // launcher); con dato reciente en caché no se vuelve a iniciar sesión en Telcel.
-        RefreshWorker.refreshNow(context, minAgeMillis = RefreshWorker.PERIODIC_MIN_AGE_MS)
+        RefreshWorker.refreshNow(context, accountId = null, minAgeMillis = RefreshWorker.PERIODIC_MIN_AGE_MS)
+    }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        // El usuario quitó widgets: borramos su configuración para no dejar basura.
+        val configs = WidgetConfigStore(context)
+        appWidgetIds.forEach { configs.delete(it) }
     }
 
     override fun onDisabled(context: Context) {
@@ -31,12 +36,14 @@ class MiTelcelWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         if (intent.action == ACTION_REFRESH) {
-            WidgetRenderer.showStatus(context, "Actualizando…")
-            RefreshWorker.refreshNow(context, minAgeMillis = RefreshWorker.MANUAL_MIN_AGE_MS)
+            val accountId = intent.getStringExtra(EXTRA_ACCOUNT_ID)
+            WidgetRenderer.showStatus(context, accountId, "Actualizando…")
+            RefreshWorker.refreshNow(context, accountId, minAgeMillis = RefreshWorker.MANUAL_MIN_AGE_MS)
         }
     }
 
     companion object {
         const val ACTION_REFRESH = "mx.mitelcel.widget.action.REFRESH"
+        const val EXTRA_ACCOUNT_ID = "account_id"
     }
 }

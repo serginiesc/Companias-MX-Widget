@@ -55,7 +55,10 @@ object GaugeRenderer {
             }
         }
 
-        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER
+            setShadowLayer(4f, 0f, 1.5f, WidgetColors.TEXT_SHADOW)
+        }
         textPaint.apply {
             color = WidgetColors.WHITE
             textSize = 46f

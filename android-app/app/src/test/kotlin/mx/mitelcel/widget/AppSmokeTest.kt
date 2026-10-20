@@ -1,5 +1,8 @@
 package mx.mitelcel.widget
 
+import android.appwidget.AppWidgetManager
+import android.content.Context
+import android.content.Intent
 import android.widget.FrameLayout
 import androidx.test.core.app.ApplicationProvider
 import mx.mitelcel.widget.core.UsageEntry
@@ -17,6 +20,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34, 35])
 class AppSmokeTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
     fun `la pantalla principal abre sin cerrarse`() {
@@ -24,12 +28,20 @@ class AppSmokeTest {
     }
 
     @Test
-    fun `el widget se dibuja sin datos y con datos`() {
-        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+    fun `la configuración del widget abre sin cerrarse`() {
+        val intent = Intent(context, WidgetConfigActivity::class.java)
+            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 7)
+        Robolectric.buildActivity(WidgetConfigActivity::class.java, intent).setup()
+    }
+
+    @Test
+    fun `el widget se dibuja transparente, a medias y sólido`() {
         val parent = FrameLayout(context)
-        WidgetRenderer.build(context, UsageEntry.errorFallback).apply(context, parent)
-        WidgetRenderer.build(context, UsageEntry.errorFallback.copy(totalMB = 15000.0, consumedMB = 9500.0, availableMB = 5500.0, daysLeft = 9))
-            .apply(context, parent)
+        val withData = UsageEntry.errorFallback.copy(totalMB = 15000.0, consumedMB = 9500.0, availableMB = 5500.0, daysLeft = 9)
+        listOf(0, 60, 100).forEach { opacity ->
+            WidgetRenderer.build(context, UsageEntry.errorFallback, "Mía", opacity).apply(context, parent)
+            WidgetRenderer.build(context, withData, "Esposa", opacity, appWidgetId = 3, accountId = "abc").apply(context, parent)
+        }
     }
 
     @Test

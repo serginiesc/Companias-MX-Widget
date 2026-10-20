@@ -26,6 +26,15 @@
             </intent-filter>
         </activity>
 
+        <!-- El launcher la abre al agregar un widget: por eso exported=true y la acción APPWIDGET_CONFIGURE. -->
+        <activity
+            android:name=".WidgetConfigActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- Tema básico del sistema (no AppCompat): debe abrir aunque el tema de la app sea el que falla. -->
         <activity
             android:name=".CrashReportActivity"

@@ -4,16 +4,16 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.Dispatchers
@@ -21,24 +21,32 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mx.mitelcel.widget.core.TelcelClient
 import mx.mitelcel.widget.core.UsageEntry
-import mx.mitelcel.widget.data.Credentials
+import mx.mitelcel.widget.data.Account
 import mx.mitelcel.widget.data.UsageRepository
 import mx.mitelcel.widget.widget.MiTelcelWidgetProvider
 import mx.mitelcel.widget.widget.WidgetRenderer
 import mx.mitelcel.widget.work.RefreshWorker
 
-/** Pantalla de configuración: capturar credenciales, probarlas y ver la vista previa. */
+/** Administrar líneas (agregar, editar, borrar), probarlas y ver la vista previa. */
 class MainActivity : AppCompatActivity() {
     private lateinit var repository: UsageRepository
 
+    private lateinit var accountsContainer: LinearLayout
+    private lateinit var emptyAccountsText: TextView
+    private lateinit var formTitle: TextView
+    private lateinit var aliasInput: TextInputEditText
     private lateinit var phoneLayout: TextInputLayout
     private lateinit var phoneInput: TextInputEditText
     private lateinit var passwordLayout: TextInputLayout
     private lateinit var passwordInput: TextInputEditText
     private lateinit var saveButton: MaterialButton
+    private lateinit var cancelEditButton: MaterialButton
     private lateinit var progress: ProgressBar
     private lateinit var statusText: TextView
     private lateinit var previewContainer: FrameLayout
+
+    /** null = el formulario agrega una línea nueva; con valor = está editando esa línea. */
+    private var editingAccount: Account? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,77 +57,127 @@ class MainActivity : AppCompatActivity() {
             return
         }
         setContentView(R.layout.activity_main)
-        applySystemBarInsets(findViewById(R.id.main_root))
+        SystemBars.applyInsets(findViewById(R.id.main_root))
 
         repository = UsageRepository(applicationContext)
+        accountsContainer = findViewById(R.id.accounts_container)
+        emptyAccountsText = findViewById(R.id.empty_accounts_text)
+        formTitle = findViewById(R.id.form_title)
+        aliasInput = findViewById(R.id.alias_input)
         phoneLayout = findViewById(R.id.phone_layout)
         phoneInput = findViewById(R.id.phone_input)
         passwordLayout = findViewById(R.id.password_layout)
         passwordInput = findViewById(R.id.password_input)
         saveButton = findViewById(R.id.save_button)
+        cancelEditButton = findViewById(R.id.cancel_edit_button)
         progress = findViewById(R.id.progress)
         statusText = findViewById(R.id.status_text)
         previewContainer = findViewById(R.id.preview_container)
 
         saveButton.setOnClickListener { onSaveClicked() }
-        findViewById<MaterialButton>(R.id.clear_button).setOnClickListener { onClearClicked() }
+        cancelEditButton.setOnClickListener { resetForm() }
         setupPinButton(findViewById(R.id.pin_button))
 
-        showPreview(repository.cachedOrFallback())
-        loadSavedPhone()
+        renderAccounts()
+        showPreview(repository.accounts.list().firstOrNull())
     }
 
-    private fun loadSavedPhone() {
-        lifecycleScope.launch {
-            // Descifrar usa el Keystore: rápido, pero mejor fuera del hilo principal.
-            val saved = withContext(Dispatchers.IO) { repository.credentials.load() }
-            if (saved != null) {
-                phoneInput.setText(saved.phone)
-                passwordLayout.helperText = "Ya hay una contraseña guardada. Déjala vacía para conservarla."
-            }
+    private fun renderAccounts() {
+        val accounts = repository.accounts.list()
+        emptyAccountsText.visibility = if (accounts.isEmpty()) View.VISIBLE else View.GONE
+        accountsContainer.removeAllViews()
+        accounts.forEach { accountsContainer.addView(accountRow(it)) }
+    }
+
+    /** Una fila: "Mía · 5512345678   [Editar] [Borrar]". Tocar el texto muestra su vista previa. */
+    private fun accountRow(account: Account): View {
+        val label = TextView(this).apply {
+            text = "${account.alias}  ·  ${account.phone}"
+            textSize = 15f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnClickListener { showPreview(account) }
         }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(label)
+            addView(textButton(this, "Editar") { startEditing(account) })
+            addView(textButton(this, "Borrar") { confirmDelete(account) })
+        }
+    }
+
+    private fun textButton(parent: LinearLayout, text: String, onClick: () -> Unit): MaterialButton =
+        (layoutInflater.inflate(R.layout.item_text_button, parent, false) as MaterialButton).apply {
+            this.text = text
+            setOnClickListener { onClick() }
+        }
+
+    private fun startEditing(account: Account) {
+        editingAccount = account
+        formTitle.text = getString(R.string.edit_line, account.alias)
+        aliasInput.setText(account.alias)
+        phoneInput.setText(account.phone)
+        passwordInput.setText("")
+        passwordLayout.helperText = getString(R.string.keep_password_hint)
+        cancelEditButton.visibility = View.VISIBLE
+        showPreview(account)
+    }
+
+    private fun resetForm() {
+        editingAccount = null
+        formTitle.setText(R.string.add_line)
+        aliasInput.setText("")
+        phoneInput.setText("")
+        passwordInput.setText("")
+        phoneLayout.error = null
+        passwordLayout.error = null
+        passwordLayout.helperText = null
+        cancelEditButton.visibility = View.GONE
     }
 
     private fun onSaveClicked() {
+        val editing = editingAccount
         val phone = TelcelClient.normalizePhone(phoneInput.text?.toString().orEmpty())
-        val typedPassword = passwordInput.text?.toString().orEmpty()
+        val password = passwordInput.text?.toString().orEmpty()
+        val alias = aliasInput.text?.toString()?.trim().orEmpty()
+            .ifEmpty { "Línea ${repository.accounts.list().size + if (editing == null) 1 else 0}" }
 
         phoneLayout.error = if (phone.length != 10) "Debe tener 10 dígitos" else null
-        if (phoneLayout.error != null) return
+        passwordLayout.error = if (editing == null && password.isEmpty()) "Escribe la contraseña" else null
+        if (phoneLayout.error != null || passwordLayout.error != null) return
 
         setBusy(true)
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                val password = typedPassword.ifEmpty { repository.credentials.load()?.password.orEmpty() }
-                if (password.isEmpty()) return@withContext null
-                repository.credentials.save(Credentials(phone, password))
-                repository.refresh(minAgeMillis = 0) // 0 = forzar consulta real a Telcel
+            val (account, result) = withContext(Dispatchers.IO) {
+                val saved = repository.accounts.save(alias, phone, password, editing?.id)
+                saved to repository.refresh(saved.id, minAgeMillis = 0) // 0 = forzar consulta real
             }
             setBusy(false)
 
-            if (result == null) {
-                passwordLayout.error = "Escribe tu contraseña"
-                return@launch
-            }
-            passwordLayout.error = null
-            passwordInput.setText("")
-
-            WidgetRenderer.updateAll(applicationContext, result.entry)
+            WidgetRenderer.updateAll(applicationContext)
             RefreshWorker.schedulePeriodic(applicationContext)
-            showPreview(result.entry)
-            statusText.text = result.error?.let { "⚠ $it" } ?: "✓ Actualizado. Ya puedes agregar el widget."
+            resetForm()
+            renderAccounts()
+            showPreview(account, result.entry)
+            statusText.text = result.error?.let { "⚠ ${account.alias}: $it" }
+                ?: "✓ ${account.alias} actualizada."
         }
     }
 
-    private fun onClearClicked() {
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) { repository.credentials.clear() }
-            phoneInput.setText("")
-            passwordInput.setText("")
-            passwordLayout.helperText = null
-            statusText.text = "Datos borrados."
-            RefreshWorker.cancelPeriodic(applicationContext)
-        }
+    private fun confirmDelete(account: Account) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("¿Borrar ${account.alias}?")
+            .setMessage("Se borrarán su número y contraseña de este teléfono. Los widgets que la mostraban pasarán a la primera línea.")
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Borrar") { _, _ ->
+                repository.deleteAccount(account.id)
+                if (editingAccount?.id == account.id) resetForm()
+                renderAccounts()
+                showPreview(repository.accounts.list().firstOrNull())
+                WidgetRenderer.updateAll(applicationContext)
+                statusText.text = "${account.alias} borrada."
+            }
+            .show()
     }
 
     private fun setupPinButton(button: MaterialButton) {
@@ -134,27 +192,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showPreview(entry: UsageEntry) {
+    private fun showPreview(account: Account?, entry: UsageEntry = repository.cachedOrFallback(account?.id)) {
+        val views = WidgetRenderer.build(applicationContext, entry, account?.alias ?: "Mi Telcel", opacityPercent = 100)
         previewContainer.removeAllViews()
         // RemoteViews.apply(context, parent) infla la vista real (no es la función "apply" de Kotlin).
         // Se usa applicationContext a propósito: con la Activity, AppCompat cambia ImageView por
         // AppCompatImageView al inflar, y RemoteViews no puede llamar setImageBitmap en esa clase.
-        previewContainer.addView(WidgetRenderer.build(this, entry).apply(applicationContext, previewContainer))
+        previewContainer.addView(views.apply(applicationContext, previewContainer))
     }
 
     private fun setBusy(busy: Boolean) {
         saveButton.isEnabled = !busy
         progress.visibility = if (busy) View.VISIBLE else View.GONE
         if (busy) statusText.text = "Consultando a Telcel…"
-    }
-
-    /** Android 15 dibuja la app detrás de las barras del sistema; dejamos espacio para no taparla. */
-    private fun applySystemBarInsets(root: View) {
-        val basePadding = root.paddingTop
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
-            view.updatePadding(top = basePadding + bars.top, bottom = basePadding + bars.bottom)
-            insets
-        }
     }
 }

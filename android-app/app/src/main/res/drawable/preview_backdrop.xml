@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simula un fondo de pantalla en la vista previa, para que se note la transparencia. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:endColor="#FFE8A87C"
+        android:startColor="#FF5B8DEF" />
+    <corners android:radius="20dp" />
+</shape>

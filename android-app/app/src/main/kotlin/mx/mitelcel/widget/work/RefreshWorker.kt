@@ -16,15 +16,21 @@ import mx.mitelcel.widget.data.UsageRepository
 import mx.mitelcel.widget.widget.WidgetRenderer
 
 /**
- * Consulta a Telcel en segundo plano y redibuja el widget.
+ * Consulta a Telcel en segundo plano y redibuja los widgets.
  * `Worker.doWork()` ya corre en un hilo de fondo, así que aquí sí se puede hacer red bloqueante.
  */
 class RefreshWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
 
     override fun doWork(): Result {
         val minAge = inputData.getLong(KEY_MIN_AGE, PERIODIC_MIN_AGE_MS)
-        val result = UsageRepository(applicationContext).refresh(minAge)
-        WidgetRenderer.updateAll(applicationContext, result.entry)
+        // Una línea concreta (toque en el widget) o todas las que se ven en algún widget.
+        val accountIds = inputData.getString(KEY_ACCOUNT_ID)?.let { setOf(it) }
+            ?: WidgetRenderer.accountIdsInUse(applicationContext)
+
+        val repository = UsageRepository(applicationContext)
+        accountIds.forEach { repository.refresh(it, minAge) } // una por una, nunca en paralelo
+        WidgetRenderer.updateAll(applicationContext)
+
         // Siempre success: si devolviéramos retry() ante un error de contraseña,
         // WorkManager reintentaría el login una y otra vez y Telcel podría bloquear la cuenta.
         return Result.success()
@@ -38,6 +44,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) : Worker(context
         const val MANUAL_MIN_AGE_MS = 10 * 1000L
 
         private const val KEY_MIN_AGE = "min_age_ms"
+        private const val KEY_ACCOUNT_ID = "account_id"
         private const val PERIODIC_WORK = "mitelcel_periodic_refresh"
         private const val ONE_SHOT_WORK = "mitelcel_refresh_now"
 
@@ -55,14 +62,16 @@ class RefreshWorker(context: Context, params: WorkerParameters) : Worker(context
                 .enqueueUniquePeriodicWork(PERIODIC_WORK, ExistingPeriodicWorkPolicy.KEEP, request)
         }
 
-        fun refreshNow(context: Context, minAgeMillis: Long) {
+        /** @param accountId null = todas las líneas visibles en widgets. */
+        fun refreshNow(context: Context, accountId: String?, minAgeMillis: Long) {
             val request = OneTimeWorkRequestBuilder<RefreshWorker>()
                 .setConstraints(NEEDS_NETWORK)
-                .setInputData(workDataOf(KEY_MIN_AGE to minAgeMillis))
+                .setInputData(workDataOf(KEY_MIN_AGE to minAgeMillis, KEY_ACCOUNT_ID to accountId))
                 .build()
-            // KEEP: si el usuario toca 5 veces seguidas, solo corre una consulta.
+            // Un nombre por línea: tocar 5 veces el mismo widget corre una sola consulta,
+            // pero tocar el widget de OTRA línea sí se atiende.
             WorkManager.getInstance(context)
-                .enqueueUniqueWork(ONE_SHOT_WORK, ExistingWorkPolicy.KEEP, request)
+                .enqueueUniqueWork("$ONE_SHOT_WORK:${accountId ?: "all"}", ExistingWorkPolicy.KEEP, request)
         }
 
         fun cancelPeriodic(context: Context) {

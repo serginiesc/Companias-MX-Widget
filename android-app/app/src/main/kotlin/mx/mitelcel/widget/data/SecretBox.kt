@@ -1,6 +1,5 @@
 package mx.mitelcel.widget.data
 
-import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
@@ -10,36 +9,22 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-data class Credentials(val phone: String, val password: String)
+/**
+ * Cifra y descifra textos. Es una interfaz para que AccountStore no dependa del Keystore real
+ * (Inversión de Dependencias): en pruebas se usa una versión falsa, porque el simulador no tiene Keystore.
+ */
+interface SecretBox {
+    fun encrypt(plain: String): String
+    fun decrypt(encoded: String): String
+}
 
 /**
- * Guarda número y contraseña. La contraseña se cifra con AES-GCM usando una llave que
- * vive dentro del Android Keystore (hardware seguro): la app puede usarla pero nunca leerla,
- * y no sale del teléfono. Equivale al Keychain de iOS.
+ * AES-GCM con una llave que vive dentro del Android Keystore (hardware seguro):
+ * la app puede usarla pero nunca leerla, y no sale del teléfono. Equivale al Keychain de iOS.
  */
-class CredentialStore(context: Context) {
-    private val prefs = context.getSharedPreferences("credentials", Context.MODE_PRIVATE)
+class KeystoreSecretBox : SecretBox {
 
-    fun save(credentials: Credentials) {
-        prefs.edit()
-            .putString(KEY_PHONE, credentials.phone)
-            .putString(KEY_PASSWORD, encrypt(credentials.password))
-            .apply()
-    }
-
-    /** null si no hay datos o si la llave ya no existe (ej. el usuario borró datos de seguridad). */
-    fun load(): Credentials? {
-        val phone = prefs.getString(KEY_PHONE, null) ?: return null
-        val encrypted = prefs.getString(KEY_PASSWORD, null) ?: return null
-        val password = runCatching { decrypt(encrypted) }.getOrNull() ?: return null
-        return Credentials(phone, password)
-    }
-
-    fun clear() {
-        prefs.edit().clear().apply()
-    }
-
-    private fun encrypt(plain: String): String {
+    override fun encrypt(plain: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
         // El IV (nonce) lo genera el Keystore; lo guardamos al inicio porque se necesita para descifrar.
@@ -47,7 +32,7 @@ class CredentialStore(context: Context) {
         return Base64.getEncoder().encodeToString(payload)
     }
 
-    private fun decrypt(encoded: String): String {
+    override fun decrypt(encoded: String): String {
         val payload = Base64.getDecoder().decode(encoded)
         val iv = payload.copyOfRange(0, IV_SIZE)
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -73,11 +58,10 @@ class CredentialStore(context: Context) {
 
     private companion object {
         const val ANDROID_KEYSTORE = "AndroidKeyStore"
+        // Mismo alias que la versión 1.1: así las contraseñas ya guardadas se siguen pudiendo descifrar.
         const val KEY_ALIAS = "mitelcel_credentials"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val IV_SIZE = 12
         const val TAG_BITS = 128
-        const val KEY_PHONE = "phone"
-        const val KEY_PASSWORD = "password_enc"
     }
 }

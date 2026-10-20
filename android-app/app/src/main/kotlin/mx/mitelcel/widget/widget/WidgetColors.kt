@@ -8,7 +8,11 @@ object WidgetColors {
     val SPENT_RED = Color.rgb(255, 69, 59)
     val WARN_YELLOW = Color.rgb(255, 214, 10)
     val SUBTITLE_GRAY = Color.rgb(153, 153, 158)
-    val TRACK = Color.rgb(43, 43, 46)
+    /** Blanco semitransparente: se ve gris sobre el fondo oscuro y sigue viéndose sobre el fondo de pantalla. */
+    val TRACK = Color.argb(70, 255, 255, 255)
+
+    /** Sombra para que el texto se lea con el fondo transparente sobre fondos claros. */
+    val TEXT_SHADOW = Color.argb(160, 0, 0, 0)
     val WHITE = Color.WHITE
 
     fun forDaysLeft(daysLeft: Int): Int = when {
