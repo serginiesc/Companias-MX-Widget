@@ -31,10 +31,13 @@ Luego sigue los pasos de [Uso](#uso). Requiere **Android 8.0 o superior**.
 - **Varias líneas:** guarda tantas como quieras, cada una con un apodo ("Mía", "Esposa").
 - **Una o dos líneas por widget:** con dos, se muestran lado a lado (recomendado 4×2).
 - **Apariencia por widget:** opacidad del fondo de 0% a 100%, **imagen de fondo** de tu galería y **color de texto** blanco, negro o automático (según tu fondo de pantalla o la imagen).
-- **Medidor semicircular:** rojo = gastado, verde = disponible, porcentaje usado y presupuesto diario (`MB/d` o `GB/d`).
+- **Dos diseños:** *Medidor* semicircular o *Barra* horizontal (rojo = gastado, verde = disponible), con porcentaje usado y presupuesto diario (`MB/d` o `GB/d`).
+- **"¿Me alcanza?":** pronostica con tu ritmo real de consumo si los datos te duran hasta el corte. Si no, lo verde se vuelve amarillo y avisa *"Se acaba ~25 oct"*.
+- **Historial:** gráfica de tu consumo por día (últimos 14 días) en la app.
+- **Aviso de datos bajos:** notificación cuando a una línea le queda menos de 1 GB o del 10% (una vez por ciclo).
 - **Contraseñas cifradas** con AES-GCM y una llave del **Android Keystore**. Nunca salen del teléfono, excepto hacia Telcel.
-- **Caché local:** si no hay red, muestra el último dato con ☁.
-- **Actualización automática** cada 30 minutos (WorkManager) y manual al tocar el medidor.
+- **Caché local y datos honestos:** sin red muestra el último dato. Si tiene más de 3 h lo marca *"☁ Sin actualizar desde…"* y lo atenúa.
+- **Actualización automática** cada 30 minutos (WorkManager) y manual al tocar el medidor. Si falla la red reintenta pronto, pero nunca reintenta una contraseña incorrecta.
 - **Sesión segura:** el token SSO se revoca siempre al terminar, aunque algo falle, y las consultas van una por una para no abrir sesiones simultáneas.
 - **Actualizaciones desde la app:** al abrirla avisa si hay una versión nueva y la instala con un toque.
 - **Reporte de errores integrado:** si la app se cierra, al abrirla de nuevo muestra el error con un botón para copiarlo.
@@ -70,6 +73,7 @@ Cada push que modifique `android-app/` genera un APK en **Actions → Android AP
 3. Se abre **Configurar widget**:
    - Marca **una o dos líneas** (pueden ser de compañías distintas).
    - Ajusta la **opacidad del fondo** (0% = transparente).
+   - Elige el **diseño**: Medidor o Barra (la barra cabe en 4×1).
    - Elige el **color del texto**: Automático, Blanco o Negro.
    - Opcional: **Elegir imagen** para usar una foto como fondo.
 4. En el widget:
@@ -135,17 +139,19 @@ Requisitos: JDK 17 y Android SDK (o Android Studio, abriendo la carpeta `android
 
 ```sh
 cd android-app
-./gradlew :core:test              # parser y cliente de red (JUnit + MockWebServer)
+java -jar ktlint.jar "**/src/**/*.kt" "**/*.kts"   # estilo (ktlint 1.3.1, reglas en .editorconfig)
+./gradlew :core:test              # parsers, red, pronóstico, versiones (JUnit + MockWebServer)
 ./gradlew :app:testDebugUnitTest  # pruebas de humo de pantallas y widget (Robolectric, API 34 y 35)
 ./gradlew :app:assembleDebug      # genera app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ### CI (GitHub Actions)
 `.github/workflows/android-apk.yml` corre con cada push que modifique `android-app/`:
-1. Pruebas de `:core`.
-2. Compilación del APK y publicación como artefacto.
-3. Pruebas de humo con Robolectric.
-4. **Solo con etiquetas `v*`:** publica el APK en **Releases**.
+1. Estilo de código con **ktlint**.
+2. Pruebas de `:core`.
+3. Compilación del APK, **verificación de su firma** y publicación como artefacto.
+4. Pruebas de humo con Robolectric.
+5. **Solo con etiquetas `v*`:** publica el APK en **Releases**.
 
 Si algo falla, los errores del compilador y de las pruebas aparecen como **anotaciones** en el resumen de la ejecución.
 

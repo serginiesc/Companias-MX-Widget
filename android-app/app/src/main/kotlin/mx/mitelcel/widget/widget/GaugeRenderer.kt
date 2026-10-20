@@ -5,9 +5,9 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
+import mx.mitelcel.widget.core.UsageEntry
 import kotlin.math.max
 import kotlin.math.min
-import mx.mitelcel.widget.core.UsageEntry
 
 /**
  * Dibuja el medidor semicircular (rojo = gastado, verde = disponible) en un Bitmap.

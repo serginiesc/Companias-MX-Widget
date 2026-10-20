@@ -1,5 +1,6 @@
 package mx.mitelcel.widget.core
 
+import kotlinx.serialization.Serializable
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -7,7 +8,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.floor
-import kotlinx.serialization.Serializable
 
 /** Una foto del consumo en un momento: con varias se calcula el ritmo real de gasto. */
 @Serializable

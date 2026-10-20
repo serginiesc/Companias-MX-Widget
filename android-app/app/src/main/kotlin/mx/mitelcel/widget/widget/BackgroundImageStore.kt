@@ -49,8 +49,7 @@ class BackgroundImageStore(private val context: Context) {
     private fun final(id: Int) = File(dir, "widget_$id.jpg")
     private fun pending(id: Int) = File(dir, "widget_${id}_pending.jpg")
 
-    private fun decodeFile(file: File): Bitmap? =
-        if (file.exists()) BitmapFactory.decodeFile(file.path) else null
+    private fun decodeFile(file: File): Bitmap? = if (file.exists()) BitmapFactory.decodeFile(file.path) else null
 
     /**
      * Una foto del celular puede pesar 12 MP (≈48 MB en memoria) y los widgets tienen un límite

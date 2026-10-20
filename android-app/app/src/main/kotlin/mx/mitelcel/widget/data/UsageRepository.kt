@@ -1,12 +1,12 @@
 package mx.mitelcel.widget.data
 
 import android.content.Context
-import java.io.IOException
 import mx.mitelcel.widget.core.BaitClient
 import mx.mitelcel.widget.core.Carrier
 import mx.mitelcel.widget.core.TelcelClient
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.core.UsageProvider
+import java.io.IOException
 
 /**
  * @param retryable true solo si falló la RED (sin señal, tiempo agotado): vale la pena reintentar pronto.
@@ -26,8 +26,7 @@ class UsageRepository(
     private val cache: UsageCache = UsageCache(context),
     val history: UsageHistoryStore = UsageHistoryStore(context),
 ) {
-    fun cachedOrFallback(accountId: String?): UsageEntry =
-        accountId?.let { cache.load(it) } ?: UsageEntry.errorFallback
+    fun cachedOrFallback(accountId: String?): UsageEntry = accountId?.let { cache.load(it) } ?: UsageEntry.errorFallback
 
     fun deleteAccount(accountId: String) {
         accounts.delete(accountId)

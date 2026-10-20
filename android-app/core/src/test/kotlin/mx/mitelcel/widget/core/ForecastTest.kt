@@ -1,14 +1,14 @@
 package mx.mitelcel.widget.core
 
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.temporal.ChronoUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 
 class ForecastTest {
     private val zone = ZoneOffset.UTC
@@ -27,8 +27,7 @@ class ForecastTest {
         updatedAt = "12:00",
     )
 
-    private fun sample(daysAgo: Long, consumed: Double) =
-        UsageSample(now.minus(daysAgo, ChronoUnit.DAYS).toEpochMilli(), consumed)
+    private fun sample(daysAgo: Long, consumed: Double) = UsageSample(now.minus(daysAgo, ChronoUnit.DAYS).toEpochMilli(), consumed)
 
     @Test
     fun `sin historial estima con un ciclo de 30 días`() {

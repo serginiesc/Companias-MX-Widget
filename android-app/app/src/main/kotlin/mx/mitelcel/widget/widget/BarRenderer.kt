@@ -35,7 +35,12 @@ object BarRenderer {
         }
         if (split < WIDTH - 0.5f) {
             paint.color = palette.available
-            canvas.drawRoundRect(RectF(minOf(WIDTH - HEIGHT.toFloat(), split + gap), 0f, WIDTH.toFloat(), HEIGHT.toFloat()), RADIUS, RADIUS, paint)
+            canvas.drawRoundRect(
+                RectF(minOf(WIDTH - HEIGHT.toFloat(), split + gap), 0f, WIDTH.toFloat(), HEIGHT.toFloat()),
+                RADIUS,
+                RADIUS,
+                paint,
+            )
         }
         return bitmap
     }

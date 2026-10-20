@@ -1,11 +1,11 @@
 package mx.mitelcel.widget.data
 
 import android.content.Context
-import java.util.UUID
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import mx.mitelcel.widget.core.Carrier
+import java.util.UUID
 
 /** Una línea guardada. La contraseña NO está aquí: se pide aparte con [AccountStore.password]. */
 @Serializable
@@ -26,10 +26,7 @@ private data class StoredAccount(
 )
 
 /** Lista de líneas guardadas. Las contraseñas se guardan cifradas con [SecretBox]. */
-class AccountStore(
-    context: Context,
-    private val box: SecretBox = KeystoreSecretBox(),
-) {
+class AccountStore(context: Context, private val box: SecretBox = KeystoreSecretBox()) {
     private val prefs = context.getSharedPreferences("accounts", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
     private val serializer = ListSerializer(StoredAccount.serializer())
@@ -57,13 +54,7 @@ class AccountStore(
      * Al editar, si [password] viene vacío se conserva la contraseña anterior (si es la misma compañía).
      */
     @Synchronized
-    fun save(
-        alias: String,
-        phone: String,
-        password: String,
-        id: String? = null,
-        carrier: Carrier = Carrier.TELCEL,
-    ): Account {
+    fun save(alias: String, phone: String, password: String, id: String? = null, carrier: Carrier = Carrier.TELCEL): Account {
         val all = readAll().toMutableList()
         val index = all.indexOfFirst { it.id == id }
         val previous = all.getOrNull(index)

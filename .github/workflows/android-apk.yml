@@ -82,6 +82,18 @@ jobs:
             exit 1
           fi
 
+      # Estilo de código con ktlint (reglas en android-app/.editorconfig). Para corregir en tu PC:
+      #   java -jar ktlint.jar --format "**/src/**/*.kt" "**/*.kts"
+      - name: Estilo de código (ktlint)
+        run: |
+          curl -sSfL --retry 3 -o "$RUNNER_TEMP/ktlint.jar" \
+            https://repo1.maven.org/maven2/com/pinterest/ktlint/ktlint-cli/1.3.1/ktlint-cli-1.3.1-all.jar
+          if ! java -jar "$RUNNER_TEMP/ktlint.jar" --relative "**/src/**/*.kt" "**/*.kts" > ktlint.txt 2>/dev/null; then
+            # "archivo:línea:columna: mensaje (regla)" -> anotación en el archivo y línea exactos
+            sed -nE 's|^([^:]+):([0-9]+):([0-9]+): (.*)$|::error file=android-app/\1,line=\2,col=\3,title=ktlint::\4|p' ktlint.txt
+            exit 1
+          fi
+
       - name: Pruebas unitarias (parser y cliente de red)
         run: ./gradlew :core:test --no-daemon
 

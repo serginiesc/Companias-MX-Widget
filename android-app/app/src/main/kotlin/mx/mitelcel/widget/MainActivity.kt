@@ -26,8 +26,6 @@ import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDate
-import java.time.ZoneId
 import mx.mitelcel.widget.core.Carrier
 import mx.mitelcel.widget.core.DailyUsage
 import mx.mitelcel.widget.core.ReleaseInfo
@@ -39,6 +37,8 @@ import mx.mitelcel.widget.widget.MiTelcelWidgetProvider
 import mx.mitelcel.widget.widget.Panel
 import mx.mitelcel.widget.widget.WidgetRenderer
 import mx.mitelcel.widget.work.RefreshWorker
+import java.time.LocalDate
+import java.time.ZoneId
 
 /** Administrar líneas (agregar, editar, borrar), probarlas y ver la vista previa. */
 class MainActivity : AppCompatActivity() {

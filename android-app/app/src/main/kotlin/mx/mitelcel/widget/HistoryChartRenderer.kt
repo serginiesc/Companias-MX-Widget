@@ -5,8 +5,8 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
-import java.util.Locale
 import mx.mitelcel.widget.core.DayUsage
+import java.util.Locale
 
 /** Gráfica de barras del consumo por día (últimos 14 días) para el diálogo de historial. */
 object HistoryChartRenderer {

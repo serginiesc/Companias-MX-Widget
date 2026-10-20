@@ -1,20 +1,14 @@
 package mx.mitelcel.widget.core
 
+import kotlinx.serialization.Serializable
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlinx.serialization.Serializable
 
 /** Una bolsa de datos (ej. "0-0-0" Plan Base, "0-1-0" Datos Promocionales). */
 @Serializable
-data class BucketUsage(
-    val id: String,
-    val name: String,
-    val consumedMB: Double,
-    val totalMB: Double,
-    val availableMB: Double,
-)
+data class BucketUsage(val id: String, val name: String, val consumedMB: Double, val totalMB: Double, val availableMB: Double)
 
 /**
  * Resultado de una consulta: suma de todas las bolsas + fecha de corte.
@@ -67,7 +61,6 @@ data class UsageEntry(
         get() = if (consumedMB < mbPerGb) fmt("%.0f MB", consumedMB) else fmt("%.2f GB", consumedMB / mbPerGb)
 
     val daysLeftText: String get() = "$daysLeft ${if (daysLeft == 1) "día" else "días"}"
-
 
     companion object {
         private val SHORT_MONTH_REGEX =

@@ -7,8 +7,13 @@ import org.junit.Test
 
 /** Lógica pura: no necesita Robolectric. */
 class TextToneResolverTest {
-    private fun dark(tone: TextTone, opacity: Int, hasImage: Boolean = false, imageLight: Boolean = false, wallpaperLight: Boolean? = null) =
-        TextToneResolver.useDarkText(tone, opacity, hasImage, imageLight) { wallpaperLight }
+    private fun dark(
+        tone: TextTone,
+        opacity: Int,
+        hasImage: Boolean = false,
+        imageLight: Boolean = false,
+        wallpaperLight: Boolean? = null,
+    ) = TextToneResolver.useDarkText(tone, opacity, hasImage, imageLight) { wallpaperLight }
 
     @Test
     fun `blanco y negro forzados ignoran el fondo`() {

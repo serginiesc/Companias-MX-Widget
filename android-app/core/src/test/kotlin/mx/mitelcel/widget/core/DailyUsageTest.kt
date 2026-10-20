@@ -1,9 +1,9 @@
 package mx.mitelcel.widget.core
 
-import java.time.LocalDate
-import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 class DailyUsageTest {
     private val zone = ZoneOffset.UTC

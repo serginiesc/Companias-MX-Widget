@@ -7,8 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.view.View
 import android.widget.RemoteViews
-import java.time.Instant
-import java.time.ZoneId
 import mx.mitelcel.widget.R
 import mx.mitelcel.widget.WidgetConfigActivity
 import mx.mitelcel.widget.core.Forecast
@@ -23,14 +21,11 @@ import mx.mitelcel.widget.data.UsageCache
 import mx.mitelcel.widget.data.UsageHistoryStore
 import mx.mitelcel.widget.data.WidgetConfig
 import mx.mitelcel.widget.data.WidgetConfigStore
+import java.time.Instant
+import java.time.ZoneId
 
 /** Lo que se dibuja de UNA línea dentro del widget. */
-data class Panel(
-    val entry: UsageEntry,
-    val title: String,
-    val accountId: String? = null,
-    val forecast: Forecast = Forecast.Unknown,
-)
+data class Panel(val entry: UsageEntry, val title: String, val accountId: String? = null, val forecast: Forecast = Forecast.Unknown)
 
 /**
  * Convierte datos en la vista del widget. No sabe nada de red.
@@ -196,19 +191,17 @@ object WidgetRenderer {
         return chosen.ifEmpty { listOfNotNull(all.firstOrNull()) }.take(WidgetConfig.MAX_LINES)
     }
 
-    private fun widgetIds(context: Context): IntArray =
-        AppWidgetManager.getInstance(context)
-            .getAppWidgetIds(ComponentName(context, MiTelcelWidgetProvider::class.java))
+    private fun widgetIds(context: Context): IntArray = AppWidgetManager.getInstance(context)
+        .getAppWidgetIds(ComponentName(context, MiTelcelWidgetProvider::class.java))
 
-    private fun configureIntent(context: Context, appWidgetId: Int): PendingIntent =
-        PendingIntent.getActivity(
-            context,
-            appWidgetId,
-            Intent(context, WidgetConfigActivity::class.java)
-                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
+    private fun configureIntent(context: Context, appWidgetId: Int): PendingIntent = PendingIntent.getActivity(
+        context,
+        appWidgetId,
+        Intent(context, WidgetConfigActivity::class.java)
+            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
 
     /**
      * requestCode único por widget Y por panel. Android considera "el mismo" PendingIntent si

@@ -25,7 +25,10 @@
 ## Reglas de Código
 - Los `RemoteViews` del widget se inflan con `applicationContext`, nunca con una `Activity`. AppCompat reemplaza `ImageView` por `AppCompatImageView` y `RemoteViews` truena.
 - Cada `PendingIntent` del widget lleva un `requestCode` único por widget y por panel.
-- `widget_panel_dark.xml` es copia de `widget_panel.xml` (solo cambia el estilo del texto): edita ambos; `AppSmokeTest` lo verifica.
+- En `RemoteViews`, declara SIEMPRE el estado completo (visibilidad, alfa, textos) de cada vista que pueda cambiar: el launcher reaplica las acciones sobre las vistas que ya tenía, y lo no declarado se queda como estaba.
+- Los layouts `*_dark.xml` son copias de su original (solo cambia el estilo del texto): edita ambos; `AppSmokeTest` lo verifica.
+- Errores de red (`IOException`) se reintentan; errores de login o de la compañía NUNCA (podría bloquear la cuenta).
+- El estilo lo revisa ktlint en CI (reglas en `android-app/.editorconfig`).
 - No cambies `applicationId` (`mx.mitelcel.widget`): Android lo trataría como otra app y nadie podría actualizar.
 - El nombre del APK del Release (`CompaniasMxWidget.apk`) debe coincidir con `UpdateChecker.APK_NAME` y el botón del README.
 - Cualquier cambio en `android-app/` debe pasar el workflow de CI antes de darse por terminado.

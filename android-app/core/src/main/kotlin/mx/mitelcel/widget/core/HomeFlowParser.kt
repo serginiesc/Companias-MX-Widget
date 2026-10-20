@@ -1,15 +1,15 @@
 package mx.mitelcel.widget.core
 
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import kotlin.math.max
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import kotlin.math.max
 
 class TelcelException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
@@ -107,9 +107,8 @@ object HomeFlowParser {
         )
     }
 
-    private fun chartValue(chart: JsonArray?, key: String): Double? =
-        chart?.firstOrNull { (it as? JsonObject).string("key") == key }
-            ?.let { (it as JsonObject)["value"].asDouble() }
+    private fun chartValue(chart: JsonArray?, key: String): Double? = chart?.firstOrNull { (it as? JsonObject).string("key") == key }
+        ?.let { (it as JsonObject)["value"].asDouble() }
 
     private fun toMB(valueCfg: JsonObject?, unitCfg: JsonObject?): Double? {
         val n = valueCfg?.get("value").asDouble() ?: return null
@@ -126,12 +125,10 @@ object HomeFlowParser {
         return Regex("""\d+""").find(text)?.value?.toIntOrNull()
     }
 
-    private fun JsonObject?.string(key: String): String? =
-        (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
+    private fun JsonObject?.string(key: String): String? = (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
 
     /** Acepta números (5) o textos numéricos ("5"), como el parser de iOS. */
-    private fun JsonElement?.asDouble(): Double? =
-        (this as? JsonPrimitive)?.let { it.doubleOrNull ?: it.content.toDoubleOrNull() }
+    private fun JsonElement?.asDouble(): Double? = (this as? JsonPrimitive)?.let { it.doubleOrNull ?: it.content.toDoubleOrNull() }
 
     /** Orden "natural": 0-1-0 antes que 0-10-0 (un orden de texto simple los invertiría). */
     private object SuffixComparator : Comparator<String> {

@@ -5,9 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.widget.FrameLayout
-import java.io.File
 import androidx.test.core.app.ApplicationProvider
-import java.time.LocalDate
 import mx.mitelcel.widget.core.Forecast
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.AccountStore
@@ -24,6 +22,8 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
+import java.time.LocalDate
 
 /**
  * Pruebas de humo: abren las pantallas en un Android simulado (Robolectric).
@@ -48,10 +48,13 @@ class AppSmokeTest {
 
     @Test
     fun `la configuración abre con dos líneas marcadas en diseño barra`() {
-        val accounts = AccountStore(context, object : SecretBox {
-            override fun encrypt(plain: String) = plain
-            override fun decrypt(encoded: String) = encoded
-        })
+        val accounts = AccountStore(
+            context,
+            object : SecretBox {
+                override fun encrypt(plain: String) = plain
+                override fun decrypt(encoded: String) = encoded
+            },
+        )
         val a = accounts.save("Mía", "5511111111", "x")
         val b = accounts.save("Esposa", "5522222222", "y")
         WidgetConfigStore(context).save(8, WidgetConfig(listOf(a.id, b.id), 40, layoutStyle = LayoutStyle.BAR))

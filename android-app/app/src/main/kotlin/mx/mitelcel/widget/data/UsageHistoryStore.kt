@@ -1,11 +1,11 @@
 package mx.mitelcel.widget.data
 
 import android.content.Context
-import java.util.concurrent.TimeUnit
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.core.UsageSample
+import java.util.concurrent.TimeUnit
 
 /**
  * Historial del consumo de cada línea (máx. una foto por hora, últimos [KEEP_DAYS] días).

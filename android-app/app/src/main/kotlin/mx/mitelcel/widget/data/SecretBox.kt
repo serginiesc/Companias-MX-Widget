@@ -58,6 +58,7 @@ class KeystoreSecretBox : SecretBox {
 
     private companion object {
         const val ANDROID_KEYSTORE = "AndroidKeyStore"
+
         // Mismo alias que la versión 1.1: así las contraseñas ya guardadas se siguen pudiendo descifrar.
         const val KEY_ALIAS = "mitelcel_credentials"
         const val TRANSFORMATION = "AES/GCM/NoPadding"

@@ -12,10 +12,10 @@ import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import java.util.concurrent.TimeUnit
 import mx.mitelcel.widget.LowDataNotifier
 import mx.mitelcel.widget.data.UsageRepository
 import mx.mitelcel.widget.widget.WidgetRenderer
+import java.util.concurrent.TimeUnit
 
 /**
  * Consulta las compañías en segundo plano y redibuja los widgets.
@@ -33,7 +33,8 @@ class RefreshWorker(context: Context, params: WorkerParameters) : Worker(context
         val repository = UsageRepository(applicationContext)
         val notifier = LowDataNotifier(applicationContext)
         var networkFailed = false
-        accountIds.forEach { id -> // una por una, nunca en paralelo
+        accountIds.forEach { id ->
+            // una por una, nunca en paralelo
             val result = repository.refresh(id, minAge)
             networkFailed = networkFailed || result.retryable
             repository.accounts.get(id)?.let { notifier.check(it, result.entry) }

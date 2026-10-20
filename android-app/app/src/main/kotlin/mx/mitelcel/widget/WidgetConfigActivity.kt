@@ -180,8 +180,7 @@ class WidgetConfigActivity : AppCompatActivity() {
     private fun selectedLayout(): LayoutStyle =
         layoutButtons.entries.firstOrNull { it.value == layoutGroup.checkedButtonId }?.key ?: LayoutStyle.GAUGE
 
-    private fun selectedTone(): TextTone =
-        toneButtons.entries.firstOrNull { it.value == toneGroup.checkedButtonId }?.key ?: TextTone.AUTO
+    private fun selectedTone(): TextTone = toneButtons.entries.firstOrNull { it.value == toneGroup.checkedButtonId }?.key ?: TextTone.AUTO
 
     private fun onImagePicked(uri: Uri) {
         lifecycleScope.launch {

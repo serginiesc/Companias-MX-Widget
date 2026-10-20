@@ -1,10 +1,5 @@
 package mx.mitelcel.widget.core
 
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -14,15 +9,18 @@ import kotlinx.serialization.json.doubleOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 /**
  * Mi Bait (red Altán, plataforma Ordenaris). Una sola consulta GET por número: no hay login.
  * Port de `src/MiBaitWidget.js` de amaynez/telcel-widget-agy.
  */
-class BaitClient(
-    private val baseUrl: String = "https://mibait.com",
-    private val http: OkHttpClient = TelcelClient.DEFAULT_HTTP,
-) : UsageProvider {
+class BaitClient(private val baseUrl: String = "https://mibait.com", private val http: OkHttpClient = TelcelClient.DEFAULT_HTTP) :
+    UsageProvider {
 
     override fun fetchUsage(rawPhone: String, password: String?): UsageEntry {
         val phone = TelcelClient.normalizePhone(rawPhone)
@@ -140,11 +138,9 @@ object BaitParser {
     }
 
     /** "2026-11-01T23:59:59.000Z" -> 2026-11-01 (solo la fecha, como la app de Bait). */
-    private fun parseDate(iso: String?): LocalDate? =
-        iso?.substringBefore('T')?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    private fun parseDate(iso: String?): LocalDate? = iso?.substringBefore('T')?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
 
-    private fun JsonObject?.str(key: String): String? =
-        (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
+    private fun JsonObject?.str(key: String): String? = (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
 
     private fun JsonObject?.bool(key: String): Boolean? = (this?.get(key) as? JsonPrimitive)?.booleanOrNull
 

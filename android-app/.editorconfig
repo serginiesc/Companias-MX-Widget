@@ -1,0 +1,11 @@
+# Estilo de código revisado por ktlint en CI (./gradlew ktlintCheck).
+# intellij_idea = convenciones oficiales de Kotlin, las mismas que aplica Android Studio al formatear.
+root = true
+
+[*.{kt,kts}]
+indent_size = 4
+insert_final_newline = true
+max_line_length = 140
+ktlint_code_style = intellij_idea
+# Los nombres de prueba con espacios (`fun \`hace tal cosa\`()`) se leen mejor en un reporte.
+ktlint_function_naming_ignore_when_annotated_with = Test

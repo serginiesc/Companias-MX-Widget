@@ -1,12 +1,12 @@
 package mx.mitelcel.widget.core
 
-import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
 
 /** Una versión publicada en GitHub Releases. */
 data class ReleaseInfo(val version: String, val apkUrl: String, val notes: String)
@@ -81,13 +81,11 @@ class UpdateChecker(
         }
 
         /** "v1.5-beta" -> [1, 5]. Toma los dígitos iniciales de cada parte ("5-beta" -> 5). */
-        private fun numbers(version: String): List<Int> =
-            version.removePrefix("v").substringBefore('-').split('.')
-                .map { part -> part.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
+        private fun numbers(version: String): List<Int> = version.removePrefix("v").substringBefore('-').split('.')
+            .map { part -> part.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
 
         private fun isPreRelease(version: String) = '-' in version
 
-        private fun JsonObject.str(key: String): String? =
-            (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        private fun JsonObject.str(key: String): String? = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
     }
 }

@@ -5,9 +5,9 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.core.content.FileProvider
-import java.io.File
 import mx.mitelcel.widget.core.ReleaseInfo
 import mx.mitelcel.widget.core.UpdateChecker
+import java.io.File
 
 /**
  * Actualizaciones "OTA" desde GitHub Releases: revisa, descarga y abre el instalador de Android.
@@ -49,8 +49,7 @@ class UpdateManager(
     /** Android 8+: el usuario debe permitir que ESTA app instale apps (una sola vez). */
     fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()
 
-    fun installPermissionIntent(): Intent =
-        Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
+    fun installPermissionIntent(): Intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
 
     /**
      * Abre el instalador. Android verifica que el APK nuevo tenga la MISMA firma que la app instalada;

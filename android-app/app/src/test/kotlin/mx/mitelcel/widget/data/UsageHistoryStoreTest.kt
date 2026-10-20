@@ -1,13 +1,13 @@
 package mx.mitelcel.widget.data
 
 import androidx.test.core.app.ApplicationProvider
-import java.util.concurrent.TimeUnit
 import mx.mitelcel.widget.core.UsageEntry
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

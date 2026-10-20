@@ -48,9 +48,8 @@ class LowDataNotifier(private val context: Context) {
     }
 
     /** Android 13+ exige permiso explícito para notificar; si el usuario lo negó, no insistimos. */
-    private fun canNotify(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    private fun canNotify(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
     private fun ensureChannel() {
         val channel = NotificationChannel(CHANNEL_ID, "Datos bajos", NotificationManager.IMPORTANCE_DEFAULT).apply {

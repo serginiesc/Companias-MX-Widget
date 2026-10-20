@@ -1,8 +1,5 @@
 package mx.mitelcel.widget.core
 
-import java.net.URLEncoder
-import java.util.Base64
-import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -15,6 +12,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.URLEncoder
+import java.util.Base64
+import java.util.concurrent.TimeUnit
 
 /** URLs de los 4 servicios. Se inyectan para poder probar el cliente con un servidor falso. */
 data class TelcelEndpoints(
@@ -30,10 +30,8 @@ data class TelcelEndpoints(
  * IMPORTANTE: [fetchUsage] es bloqueante (hace red). Llámalo solo desde un hilo de fondo
  * (Worker o Dispatchers.IO); en el hilo principal Android lanza NetworkOnMainThreadException.
  */
-class TelcelClient(
-    private val endpoints: TelcelEndpoints = TelcelEndpoints(),
-    private val baseHttp: OkHttpClient = DEFAULT_HTTP,
-) : UsageProvider {
+class TelcelClient(private val endpoints: TelcelEndpoints = TelcelEndpoints(), private val baseHttp: OkHttpClient = DEFAULT_HTTP) :
+    UsageProvider {
     override fun fetchUsage(rawPhone: String, password: String?): UsageEntry {
         val phone = normalizePhone(rawPhone)
         if (phone.length != 10 || password.isNullOrEmpty()) {
@@ -70,7 +68,10 @@ class TelcelClient(
         val request = Request.Builder()
             .url(endpoints.login)
             .header("Origin", "https://wbl.telcel-id.com:8443")
-            .header("Referer", "https://wbl.telcel-id.com:8443/login?sitedomain=https://www.mitelcel.com&CCode=52&Type=MSISDN&Invocation=iFrame")
+            .header(
+                "Referer",
+                "https://wbl.telcel-id.com:8443/login?sitedomain=https://www.mitelcel.com&CCode=52&Type=MSISDN&Invocation=iFrame",
+            )
             .header("X-Requested-With", "XMLHttpRequest")
             .header("User-Agent", MOBILE_UA)
             .post(body.toRequestBody(FORM_UTF8))
@@ -143,15 +144,13 @@ class TelcelClient(
         http.newCall(request).execute().close()
     }
 
-    private fun executeJson(http: OkHttpClient, request: Request, step: String): JsonObject =
-        http.newCall(request).execute().use { resp ->
-            val text = resp.body?.string().orEmpty()
-            runCatching { Json.parseToJsonElement(text) as JsonObject }.getOrNull()
-                ?: throw TelcelException("Respuesta inesperada en paso '$step' (HTTP ${resp.code})")
-        }
+    private fun executeJson(http: OkHttpClient, request: Request, step: String): JsonObject = http.newCall(request).execute().use { resp ->
+        val text = resp.body?.string().orEmpty()
+        runCatching { Json.parseToJsonElement(text) as JsonObject }.getOrNull()
+            ?: throw TelcelException("Respuesta inesperada en paso '$step' (HTTP ${resp.code})")
+    }
 
-    private fun JsonObject?.str(key: String): String? =
-        (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
+    private fun JsonObject?.str(key: String): String? = (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
 
     private class InMemoryCookieJar : CookieJar {
         private val cookies = mutableListOf<Cookie>()
