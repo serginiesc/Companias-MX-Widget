@@ -11,8 +11,8 @@ android {
         applicationId = "mx.mitelcel.widget"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     buildTypes {
@@ -29,6 +29,11 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    testOptions {
+        // Robolectric necesita los recursos (layouts, temas) para inflar pantallas en la JVM.
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -39,4 +44,8 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.13")
+    testImplementation("androidx.test:core:1.6.1")
 }

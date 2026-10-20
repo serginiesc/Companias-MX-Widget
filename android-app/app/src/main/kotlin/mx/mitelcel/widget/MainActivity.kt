@@ -2,6 +2,7 @@ package mx.mitelcel.widget
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
@@ -41,6 +42,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Si la app se cerró la vez anterior, primero mostramos por qué.
+        if (CrashReporter.pending(this) != null) {
+            startActivity(Intent(this, CrashReportActivity::class.java))
+            finish()
+            return
+        }
         setContentView(R.layout.activity_main)
         applySystemBarInsets(findViewById(R.id.main_root))
 

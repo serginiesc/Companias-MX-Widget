@@ -9,6 +9,7 @@
         un respaldo restaurado en otro equipo sería inservible de todas formas.
     -->
     <application
+        android:name=".MiTelcelApp"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
@@ -24,6 +25,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Tema básico del sistema (no AppCompat): debe abrir aunque el tema de la app sea el que falla. -->
+        <activity
+            android:name=".CrashReportActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault" />
 
         <receiver
             android:name=".widget.MiTelcelWidgetProvider"
