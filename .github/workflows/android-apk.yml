@@ -15,7 +15,9 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Versión fija: "ubuntu-latest" cambia de imagen sin avisar (así se rompió el primer build).
+    # ubuntu-24.04 ya trae el Android SDK instalado en $ANDROID_HOME.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     defaults:
       run:
@@ -24,12 +26,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
+      - name: Verificar Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME" || { echo "::error::El runner no trae Android SDK"; exit 1; }
 
       - uses: gradle/actions/setup-gradle@v4
 
