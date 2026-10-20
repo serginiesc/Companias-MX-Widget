@@ -130,9 +130,11 @@ class AccountStoreTest {
     }
 
     @Test
-    fun `guarda color de texto e imagen de fondo del widget`() {
+    fun `guarda color de texto imagen de fondo y diseño del widget`() {
         val configs = WidgetConfigStore(context)
-        val config = WidgetConfig(listOf("a"), 30, TextTone.BLACK, hasBackgroundImage = true, imageIsLight = true)
+        val config = WidgetConfig(
+            listOf("a"), 30, TextTone.BLACK, hasBackgroundImage = true, imageIsLight = true, layoutStyle = LayoutStyle.BAR,
+        )
 
         configs.save(5, config)
 

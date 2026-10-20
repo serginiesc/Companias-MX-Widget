@@ -6,16 +6,25 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Build
 import mx.mitelcel.widget.R
+import mx.mitelcel.widget.data.LayoutStyle
 import mx.mitelcel.widget.data.TextTone
 import mx.mitelcel.widget.data.WidgetConfig
 
-/** Cómo se ve un widget: opacidad, color de texto e imagen de fondo opcional. */
+/** Cómo se ve un widget: opacidad, color de texto, imagen de fondo opcional y diseño (medidor o barra). */
 data class WidgetStyle(
     val opacityPercent: Int = WidgetConfig.DEFAULT_OPACITY,
     val darkText: Boolean = false,
     val backgroundImage: Bitmap? = null,
+    val layoutStyle: LayoutStyle = LayoutStyle.GAUGE,
 ) {
     val palette: WidgetPalette get() = if (darkText) WidgetPalette.DARK_TEXT else WidgetPalette.LIGHT_TEXT
+
+    /** Layout del panel de cada línea según diseño y color de texto (4 combinaciones). */
+    val panelLayout: Int
+        get() = when (layoutStyle) {
+            LayoutStyle.GAUGE -> palette.gaugePanelLayout
+            LayoutStyle.BAR -> palette.barPanelLayout
+        }
 
     companion object {
         /** Lee la configuración guardada de un widget y decide el color de texto real. */
@@ -31,6 +40,7 @@ data class WidgetStyle(
                     wallpaperIsLight = { wallpaperIsLight(context) },
                 ),
                 backgroundImage = image,
+                layoutStyle = config.layoutStyle,
             )
         }
 
@@ -83,7 +93,8 @@ data class WidgetPalette(
     val warn: Int,
     val track: Int,
     val textShadow: Int?,
-    val panelLayout: Int,
+    val gaugePanelLayout: Int,
+    val barPanelLayout: Int,
     val pillBackground: Int,
 ) {
     fun forDaysLeft(daysLeft: Int): Int = when {
@@ -101,7 +112,8 @@ data class WidgetPalette(
             warn = Color.rgb(255, 214, 10),
             track = Color.argb(70, 255, 255, 255),
             textShadow = Color.argb(160, 0, 0, 0),
-            panelLayout = R.layout.widget_panel,
+            gaugePanelLayout = R.layout.widget_panel,
+            barPanelLayout = R.layout.widget_bar_panel,
             pillBackground = R.drawable.pill_background,
         )
 
@@ -114,7 +126,8 @@ data class WidgetPalette(
             warn = Color.rgb(170, 110, 0),
             track = Color.argb(45, 0, 0, 0),
             textShadow = null,
-            panelLayout = R.layout.widget_panel_dark,
+            gaugePanelLayout = R.layout.widget_panel_dark,
+            barPanelLayout = R.layout.widget_bar_panel_dark,
             pillBackground = R.drawable.pill_background_dark,
         )
     }

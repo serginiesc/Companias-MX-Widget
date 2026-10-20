@@ -12,6 +12,7 @@ import mx.mitelcel.widget.WidgetConfigActivity
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.Account
 import mx.mitelcel.widget.data.AccountStore
+import mx.mitelcel.widget.data.LayoutStyle
 import mx.mitelcel.widget.data.UsageCache
 import mx.mitelcel.widget.data.WidgetConfig
 import mx.mitelcel.widget.data.WidgetConfigStore
@@ -23,7 +24,8 @@ data class Panel(val entry: UsageEntry, val title: String, val accountId: String
  * Convierte datos en la vista del widget. No sabe nada de red.
  *
  * Estructura: un contenedor (widget_mitelcel: fondo + fila vacía) al que se le agrega un
- * panel (widget_panel) por cada línea con RemoteViews.addView. Así 1 o 2 líneas usan el mismo código.
+ * panel por cada línea con RemoteViews.addView. Así 1 o 2 líneas usan el mismo código.
+ * Estilo 1 (medidor): paneles lado a lado. Estilo 2 (barra): paneles uno debajo del otro.
  */
 object WidgetRenderer {
 
@@ -54,13 +56,17 @@ object WidgetRenderer {
             root.setInt(R.id.widget_bg, "setImageAlpha", alpha)
         }
 
-        root.removeAllViews(R.id.widget_panels)
+        // RemoteViews no deja cambiar la orientación de un LinearLayout: hay dos filas y se muestra una.
+        val row = if (style.layoutStyle == LayoutStyle.BAR) R.id.widget_panels_stacked else R.id.widget_panels
+        root.setViewVisibility(R.id.widget_panels, if (row == R.id.widget_panels) View.VISIBLE else View.GONE)
+        root.setViewVisibility(R.id.widget_panels_stacked, if (row == R.id.widget_panels_stacked) View.VISIBLE else View.GONE)
+        root.removeAllViews(row)
         panels.ifEmpty { listOf(Panel(UsageEntry.errorFallback, context.getString(R.string.app_short_name))) }
             .forEachIndexed { index, panel ->
                 val showStatus = statusText != null && (statusAccountId == null || statusAccountId == panel.accountId)
                 root.addView(
-                    R.id.widget_panels,
-                    buildPanel(context, panel, style.palette, appWidgetId, index, if (showStatus) statusText else null),
+                    row,
+                    buildPanel(context, panel, style, appWidgetId, index, if (showStatus) statusText else null),
                 )
             }
         return root
@@ -69,13 +75,14 @@ object WidgetRenderer {
     private fun buildPanel(
         context: Context,
         panel: Panel,
-        palette: WidgetPalette,
+        style: WidgetStyle,
         appWidgetId: Int?,
         index: Int,
         statusText: String?,
     ): RemoteViews {
-        // El layout cambia solo por la sombra del texto (RemoteViews no deja cambiarla en código).
-        val views = RemoteViews(context.packageName, palette.panelLayout)
+        val palette = style.palette
+        // El layout depende del diseño y de la sombra del texto (RemoteViews no deja cambiarla en código).
+        val views = RemoteViews(context.packageName, style.panelLayout)
         val entry = panel.entry
         val hasData = entry.totalMB > 0
 
@@ -94,7 +101,18 @@ object WidgetRenderer {
         views.setTextColor(R.id.widget_daily, palette.available)
         views.setTextColor(R.id.widget_footer, palette.secondary)
 
-        views.setImageViewBitmap(R.id.widget_gauge, GaugeRenderer.render(entry, palette))
+        when (style.layoutStyle) {
+            LayoutStyle.GAUGE -> views.setImageViewBitmap(R.id.widget_gauge, GaugeRenderer.render(entry, palette))
+            LayoutStyle.BAR -> {
+                // Solo existen en el layout de barra: en el medidor estos números van dentro del Bitmap.
+                // (Llamar setTextViewText con un id que no existe en el layout truena al aplicarse.)
+                views.setImageViewBitmap(R.id.widget_gauge, BarRenderer.render(entry, palette))
+                views.setTextViewText(R.id.widget_amount, entry.remainingText)
+                views.setTextViewText(R.id.widget_total, "libres de ${entry.totalText}")
+                views.setTextColor(R.id.widget_amount, palette.primary)
+                views.setTextColor(R.id.widget_total, palette.secondary)
+            }
+        }
         views.setTextViewText(R.id.widget_spent, "● ${entry.spentShortText} (${entry.percentUsed}%)")
         views.setTextViewText(R.id.widget_daily, "● ${entry.dailyAllowanceText}")
         views.setTextViewText(R.id.widget_footer, statusText ?: entry.footerText)

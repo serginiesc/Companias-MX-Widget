@@ -3,6 +3,7 @@
     updatePeriodMillis=0: el refresco lo controla WorkManager (RefreshWorker), no el sistema.
     configure: pantalla que se abre al agregar el widget (elegir línea y transparencia).
     reconfigurable (Android 12+): mantener presionado el widget muestra "Configurar" para cambiarlo después.
+    minResize*: permite achicarlo a una fila (4×1), ideal para el diseño "Barra" con una línea.
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:configure="mx.mitelcel.widget.WidgetConfigActivity"
@@ -10,6 +11,8 @@
     android:initialLayout="@layout/widget_mitelcel"
     android:minWidth="110dp"
     android:minHeight="110dp"
+    android:minResizeHeight="50dp"
+    android:minResizeWidth="110dp"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="2"
     android:targetCellHeight="2"

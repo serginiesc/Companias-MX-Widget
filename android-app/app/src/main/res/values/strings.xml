@@ -38,4 +38,7 @@
     <string name="pick_image">Elegir imagen</string>
     <string name="change_image">Cambiar imagen</string>
     <string name="remove_image">Quitar</string>
+    <string name="config_layout">Diseño</string>
+    <string name="layout_gauge">Medidor</string>
+    <string name="layout_bar">Barra</string>
 </resources>

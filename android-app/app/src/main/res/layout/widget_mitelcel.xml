@@ -28,6 +28,17 @@
         android:scaleType="centerCrop"
         android:visibility="gone" />
 
+    <!-- Estilo 2 "Barra": las líneas van una debajo de otra. Solo una de las dos filas está visible. -->
+    <LinearLayout
+        android:id="@+id/widget_panels_stacked"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="8dp"
+        android:visibility="gone" />
+
+    <!-- Estilo 1 "Medidor": las líneas van lado a lado. -->
     <LinearLayout
         android:id="@+id/widget_panels"
         android:layout_width="match_parent"

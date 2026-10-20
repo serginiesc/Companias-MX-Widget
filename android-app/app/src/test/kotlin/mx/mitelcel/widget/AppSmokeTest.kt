@@ -9,6 +9,7 @@ import java.io.File
 import androidx.test.core.app.ApplicationProvider
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.AccountStore
+import mx.mitelcel.widget.data.LayoutStyle
 import mx.mitelcel.widget.data.SecretBox
 import mx.mitelcel.widget.data.WidgetConfig
 import mx.mitelcel.widget.data.WidgetConfigStore
@@ -44,14 +45,14 @@ class AppSmokeTest {
     }
 
     @Test
-    fun `la configuración abre con dos líneas marcadas`() {
+    fun `la configuración abre con dos líneas marcadas en diseño barra`() {
         val accounts = AccountStore(context, object : SecretBox {
             override fun encrypt(plain: String) = plain
             override fun decrypt(encoded: String) = encoded
         })
         val a = accounts.save("Mía", "5511111111", "x")
         val b = accounts.save("Esposa", "5522222222", "y")
-        WidgetConfigStore(context).save(8, WidgetConfig(listOf(a.id, b.id), 40))
+        WidgetConfigStore(context).save(8, WidgetConfig(listOf(a.id, b.id), 40, layoutStyle = LayoutStyle.BAR))
 
         val intent = Intent(context, WidgetConfigActivity::class.java)
             .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 8)
@@ -65,12 +66,15 @@ class AppSmokeTest {
         val mine = Panel(withData, "Mía", "a")
         val other = Panel(UsageEntry.errorFallback, "Esposa", "b")
         val photo = Bitmap.createBitmap(40, 30, Bitmap.Config.ARGB_8888)
-        val styles = listOf(0, 60, 100).flatMap { opacity ->
-            listOf(
-                WidgetStyle(opacity, darkText = false),
-                WidgetStyle(opacity, darkText = true),
-                WidgetStyle(opacity, darkText = true, backgroundImage = photo),
-            )
+        // Todas las combinaciones: diseño × color de texto × opacidad × con/sin imagen.
+        val styles = LayoutStyle.entries.flatMap { layout ->
+            listOf(0, 60, 100).flatMap { opacity ->
+                listOf(
+                    WidgetStyle(opacity, darkText = false, layoutStyle = layout),
+                    WidgetStyle(opacity, darkText = true, layoutStyle = layout),
+                    WidgetStyle(opacity, darkText = true, backgroundImage = photo, layoutStyle = layout),
+                )
+            }
         }
         styles.forEach { style ->
             WidgetRenderer.build(context, emptyList(), style).apply(context, parent)
@@ -81,16 +85,16 @@ class AppSmokeTest {
     }
 
     /**
-     * widget_panel_dark.xml es una copia obligada de widget_panel.xml (RemoteViews no deja cambiar la
-     * sombra del texto en código). Si alguien edita una y olvida la otra, esta prueba falla.
+     * Los layouts "_dark" son copias obligadas (RemoteViews no deja cambiar la sombra del texto en
+     * código). Si alguien edita uno y olvida su copia, esta prueba falla.
      */
     @Test
-    fun `los dos layouts de panel solo difieren en el estilo del texto`() {
-        fun normalized(name: String) = File("src/main/res/layout/$name").readLines()
-            .filterNot { it.trimStart().startsWith("<!--") || it.trimStart().startsWith("No la edites") }
-            .joinToString("\n")
+    fun `cada layout de panel oscuro solo difiere de su original en el estilo del texto`() {
+        fun normalized(name: String) = File("src/main/res/layout/$name").readText()
+            .replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "") // los comentarios sí pueden diferir
             .replace("@style/WidgetTextDark", "@style/WidgetText")
         assertEquals(normalized("widget_panel.xml"), normalized("widget_panel_dark.xml"))
+        assertEquals(normalized("widget_bar_panel.xml"), normalized("widget_bar_panel_dark.xml"))
     }
 
     @Test

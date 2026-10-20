@@ -5,12 +5,16 @@ import android.content.Context
 /** Color del texto del widget. AUTO lo decide según lo que haya detrás (ver TextToneResolver). */
 enum class TextTone { AUTO, WHITE, BLACK }
 
+/** Diseño del panel de cada línea: Estilo 1 (medidor semicircular) o Estilo 2 (barra horizontal). */
+enum class LayoutStyle { GAUGE, BAR }
+
 /**
  * Configuración de UN widget en la pantalla de inicio.
  * @param accountIds líneas que muestra (máx. [MAX_LINES]); vacío = la primera línea guardada.
  * @param opacityPercent opacidad del fondo (color o imagen): 0 = transparente, 100 = sólido.
  * @param hasBackgroundImage si usa una imagen propia (BackgroundImageStore) en lugar del fondo oscuro.
  * @param imageIsLight si esa imagen es clara: en modo AUTO decide texto negro.
+ * @param layoutStyle medidor (como hasta la v1.4) o barra.
  */
 data class WidgetConfig(
     val accountIds: List<String> = emptyList(),
@@ -18,6 +22,7 @@ data class WidgetConfig(
     val textTone: TextTone = TextTone.AUTO,
     val hasBackgroundImage: Boolean = false,
     val imageIsLight: Boolean = false,
+    val layoutStyle: LayoutStyle = LayoutStyle.GAUGE,
 ) {
     companion object {
         const val DEFAULT_OPACITY = 100
@@ -42,6 +47,9 @@ class WidgetConfigStore(context: Context) {
                 ?.let { runCatching { TextTone.valueOf(it) }.getOrNull() } ?: TextTone.AUTO,
             hasBackgroundImage = prefs.getBoolean(imageKey(appWidgetId), false),
             imageIsLight = prefs.getBoolean(imageLightKey(appWidgetId), false),
+            // Los widgets creados antes de la v1.5 no tienen esta llave: siguen con el medidor.
+            layoutStyle = prefs.getString(layoutKey(appWidgetId), null)
+                ?.let { runCatching { LayoutStyle.valueOf(it) }.getOrNull() } ?: LayoutStyle.GAUGE,
         )
     }
 
@@ -52,6 +60,7 @@ class WidgetConfigStore(context: Context) {
             .putString(toneKey(appWidgetId), config.textTone.name)
             .putBoolean(imageKey(appWidgetId), config.hasBackgroundImage)
             .putBoolean(imageLightKey(appWidgetId), config.imageIsLight)
+            .putString(layoutKey(appWidgetId), config.layoutStyle.name)
             .remove(legacyAccountKey(appWidgetId))
             .apply()
     }
@@ -64,6 +73,7 @@ class WidgetConfigStore(context: Context) {
             .remove(toneKey(appWidgetId))
             .remove(imageKey(appWidgetId))
             .remove(imageLightKey(appWidgetId))
+            .remove(layoutKey(appWidgetId))
             .apply()
     }
 
@@ -73,6 +83,7 @@ class WidgetConfigStore(context: Context) {
     private fun toneKey(id: Int) = "tone_$id"
     private fun imageKey(id: Int) = "image_$id"
     private fun imageLightKey(id: Int) = "image_light_$id"
+    private fun layoutKey(id: Int) = "layout_$id"
 
     private companion object {
         const val SEPARATOR = "," // los ids son UUID: nunca contienen comas

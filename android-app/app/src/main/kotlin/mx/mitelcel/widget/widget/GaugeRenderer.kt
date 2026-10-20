@@ -5,7 +5,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
-import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 import mx.mitelcel.widget.core.UsageEntry
@@ -64,14 +63,14 @@ object GaugeRenderer {
             textSize = 46f
             typeface = Typeface.DEFAULT_BOLD
         }
-        canvas.drawText(String.format(Locale.US, "%.2f GB", entry.remainingGB), cx, cy - 12f, textPaint)
+        canvas.drawText(entry.remainingText, cx, cy - 12f, textPaint)
 
         textPaint.apply {
             color = palette.secondary
             textSize = 22f
             typeface = Typeface.DEFAULT
         }
-        canvas.drawText(String.format(Locale.US, "libres de %.1f GB", entry.totalGB), cx, cy + 22f, textPaint)
+        canvas.drawText("libres de ${entry.totalText}", cx, cy + 22f, textPaint)
 
         return bitmap
     }

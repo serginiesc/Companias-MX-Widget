@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.Account
 import mx.mitelcel.widget.data.AccountStore
+import mx.mitelcel.widget.data.LayoutStyle
 import mx.mitelcel.widget.data.TextTone
 import mx.mitelcel.widget.data.UsageCache
 import mx.mitelcel.widget.data.WidgetConfig
@@ -50,6 +51,7 @@ class WidgetConfigActivity : AppCompatActivity() {
     private lateinit var opacityLabel: TextView
     private lateinit var opacitySlider: Slider
     private lateinit var toneGroup: MaterialButtonToggleGroup
+    private lateinit var layoutGroup: MaterialButtonToggleGroup
     private lateinit var previewFrame: FrameLayout
     private lateinit var preview: FrameLayout
 
@@ -60,6 +62,11 @@ class WidgetConfigActivity : AppCompatActivity() {
         TextTone.AUTO to R.id.tone_auto,
         TextTone.WHITE to R.id.tone_white,
         TextTone.BLACK to R.id.tone_black,
+    )
+
+    private val layoutButtons = mapOf(
+        LayoutStyle.GAUGE to R.id.layout_gauge,
+        LayoutStyle.BAR to R.id.layout_bar,
     )
 
     // Estado de la imagen de fondo mientras se configura (se aplica al Guardar).
@@ -99,6 +106,7 @@ class WidgetConfigActivity : AppCompatActivity() {
         opacityLabel = findViewById(R.id.opacity_label)
         opacitySlider = findViewById(R.id.opacity_slider)
         toneGroup = findViewById(R.id.text_tone_group)
+        layoutGroup = findViewById(R.id.layout_style_group)
         previewFrame = findViewById(R.id.preview_frame)
         preview = findViewById(R.id.config_preview)
 
@@ -117,6 +125,8 @@ class WidgetConfigActivity : AppCompatActivity() {
         opacitySlider.addOnChangeListener { _, _, _ -> renderPreview() }
         toneGroup.check(toneButtons.getValue(current.textTone))
         toneGroup.addOnButtonCheckedListener { _, _, isChecked -> if (isChecked) renderPreview() }
+        layoutGroup.check(layoutButtons.getValue(current.layoutStyle))
+        layoutGroup.addOnButtonCheckedListener { _, _, isChecked -> if (isChecked) renderPreview() }
 
         hasImage = current.hasBackgroundImage
         imageIsLight = current.imageIsLight
@@ -172,6 +182,9 @@ class WidgetConfigActivity : AppCompatActivity() {
 
     // ------------------------------------------------------------ apariencia
 
+    private fun selectedLayout(): LayoutStyle =
+        layoutButtons.entries.firstOrNull { it.value == layoutGroup.checkedButtonId }?.key ?: LayoutStyle.GAUGE
+
     private fun selectedTone(): TextTone =
         toneButtons.entries.firstOrNull { it.value == toneGroup.checkedButtonId }?.key ?: TextTone.AUTO
 
@@ -223,6 +236,7 @@ class WidgetConfigActivity : AppCompatActivity() {
                 wallpaperIsLight = { wallpaperIsLight },
             ),
             backgroundImage = imageBitmap,
+            layoutStyle = selectedLayout(),
         )
     }
 
@@ -231,10 +245,17 @@ class WidgetConfigActivity : AppCompatActivity() {
         opacityLabel.text = getString(R.string.config_opacity, style.opacityPercent)
 
         val panels = selectedAccounts().map { Panel(cache.load(it.id) ?: UsageEntry.errorFallback, it.alias, it.id) }
-        // Con 2 líneas la vista previa es más ancha, como se verá el widget de 4×2.
-        val widthDp = if (panels.size > 1) 340 else 200
+        // La vista previa toma la proporción con la que se ve mejor cada diseño en la pantalla de inicio:
+        // medidor = 2×2 (o 4×2 con dos líneas); barra = 4×1 (o 4×2 con dos líneas, apiladas).
+        val twoLines = panels.size > 1
+        val (widthDp, heightDp) = when (style.layoutStyle) {
+            LayoutStyle.GAUGE -> (if (twoLines) 340 else 200) to 200
+            LayoutStyle.BAR -> 330 to (if (twoLines) 220 else 130)
+        }
+        val density = resources.displayMetrics.density
         previewFrame.layoutParams = previewFrame.layoutParams.apply {
-            width = (widthDp * resources.displayMetrics.density).toInt()
+            width = (widthDp * density).toInt()
+            height = (heightDp * density).toInt()
         }
 
         val views = WidgetRenderer.build(applicationContext, panels, style)
@@ -257,6 +278,7 @@ class WidgetConfigActivity : AppCompatActivity() {
                 textTone = selectedTone(),
                 hasBackgroundImage = hasImage,
                 imageIsLight = imageIsLight,
+                layoutStyle = selectedLayout(),
             ),
         )
         saved = true

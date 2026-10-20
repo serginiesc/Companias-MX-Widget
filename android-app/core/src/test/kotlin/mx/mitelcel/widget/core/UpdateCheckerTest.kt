@@ -23,6 +23,15 @@ class UpdateCheckerTest {
     }
 
     @Test
+    fun `las versiones de prueba van entre la anterior y la final`() {
+        assertFalse(UpdateChecker.isNewer("1.4.1", "1.5-beta")) // no ofrecer bajar de versión
+        assertTrue(UpdateChecker.isNewer("1.5", "1.5-beta")) // la final sí reemplaza a la beta
+        assertTrue(UpdateChecker.isNewer("1.5-beta", "1.4.1"))
+        assertFalse(UpdateChecker.isNewer("1.5-beta", "1.5"))
+        assertFalse(UpdateChecker.isNewer("1.5-beta", "1.5-beta"))
+    }
+
+    @Test
     fun `lee el release y su APK`() {
         val json = """
             {"tag_name":"v1.4","body":"Bait y actualizaciones",

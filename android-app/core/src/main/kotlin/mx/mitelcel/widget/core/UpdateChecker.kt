@@ -66,17 +66,26 @@ class UpdateChecker(
         /**
          * "1.10" es más nueva que "1.9". Comparar como texto diría lo contrario ("1.1" < "1.9"),
          * así que se compara número por número.
+         * Una versión de prueba ("1.5-beta") es anterior a la final ("1.5") y posterior a "1.4.1".
          */
         fun isNewer(candidate: String, current: String): Boolean {
-            val a = candidate.removePrefix("v").split('.').map { it.toIntOrNull() ?: 0 }
-            val b = current.removePrefix("v").split('.').map { it.toIntOrNull() ?: 0 }
+            val a = numbers(candidate)
+            val b = numbers(current)
             for (i in 0 until maxOf(a.size, b.size)) {
                 val x = a.getOrElse(i) { 0 }
                 val y = b.getOrElse(i) { 0 }
                 if (x != y) return x > y
             }
-            return false
+            // Mismos números: solo es "más nueva" la final frente a su versión de prueba.
+            return isPreRelease(current) && !isPreRelease(candidate)
         }
+
+        /** "v1.5-beta" -> [1, 5]. Toma los dígitos iniciales de cada parte ("5-beta" -> 5). */
+        private fun numbers(version: String): List<Int> =
+            version.removePrefix("v").substringBefore('-').split('.')
+                .map { part -> part.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
+
+        private fun isPreRelease(version: String) = '-' in version
 
         private fun JsonObject.str(key: String): String? =
             (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content

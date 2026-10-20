@@ -41,6 +41,12 @@ data class UsageEntry(
 
     val totalGB: Double get() = totalMB / mbPerGb
 
+    /** "5.47 GB": lo mismo en el medidor y en la barra (un solo lugar para el formato). */
+    val remainingText: String get() = fmt("%.2f GB", remainingGB)
+
+    /** "15.0 GB" */
+    val totalText: String get() = fmt("%.1f GB", totalGB)
+
     val usageRatio: Double
         get() = if (totalMB > 0) min(1.0, max(0.0, consumedMB / totalMB)) else 0.0
 
