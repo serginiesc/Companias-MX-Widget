@@ -2,6 +2,10 @@ name: Android APK
 
 on:
   push:
+    # Si se declara "tags" sin "branches", GitHub deja de correr el workflow en push normales:
+    # por eso van los dos. Los filtros de "paths" no aplican a las etiquetas.
+    branches: ["**"]
+    tags: ["v*"] # ej. v1.3 -> además de compilar, publica un Release con el APK
     paths:
       - "android-app/**"
       - ".github/workflows/android-apk.yml"
@@ -50,6 +54,23 @@ jobs:
             echo "Usando llave de firma fija."
           else
             echo "Sin secreto DEBUG_KEYSTORE_B64: se usará una llave temporal."
+          fi
+
+      # Un Release lo instalan otras personas: sin llave fija, cada versión tendría otra firma
+      # y nadie podría actualizar sin desinstalar. Y la etiqueta debe coincidir con versionName.
+      - name: Validar Release (solo en etiquetas v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$DEBUG_KEYSTORE_B64" ]; then
+            echo "::error::Configura el secreto DEBUG_KEYSTORE_B64 antes de publicar un Release (ver README)."
+            exit 1
+          fi
+          VERSION=$(sed -nE 's/.*versionName = "([^"]+)".*/\1/p' app/build.gradle.kts)
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::La etiqueta $GITHUB_REF_NAME no coincide con versionName ($VERSION) en app/build.gradle.kts."
+            exit 1
           fi
 
       - name: Pruebas unitarias (parser y cliente de red)
@@ -102,3 +123,23 @@ jobs:
           path: |
             android-app/core/build/reports/tests/
             android-app/app/build/reports/tests/
+
+  # Solo con etiquetas v*: publica el APK en Releases (descarga directa, sin cuenta y sin caducidad).
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # único job con permiso de escritura (mínimo privilegio)
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: MiTelcelWidget-apk
+
+      # Nombre fijo: así el enlace .../releases/latest/download/MiTelcelWidget.apk nunca cambia.
+      - run: mv app-debug.apk MiTelcelWidget.apk
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: MiTelcelWidget.apk
+          generate_release_notes: true

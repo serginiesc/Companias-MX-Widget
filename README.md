@@ -5,6 +5,24 @@ Widget nativo de Android (Kotlin) que muestra en la pantalla de inicio los **GB 
 > [!WARNING]
 > **App no oficial.** Usa los mismos servicios que la web de Mi Telcel. Si Telcel los cambia, el widget dejará de actualizarse.
 
+## 📲 Descargar
+
+<p align="center">
+  <a href="https://github.com/serginiesc/telcel-widget-android/releases/latest/download/MiTelcelWidget.apk">
+    <img src="https://img.shields.io/github/v/release/serginiesc/telcel-widget-android?label=Descargar%20APK&style=for-the-badge&logo=android&color=33D64A" alt="Descargar APK">
+  </a>
+</p>
+
+**¿Primera vez instalando una app fuera de la Play Store?** Desde tu celular Android:
+
+1. **Toca el botón verde de arriba.** Se descarga `MiTelcelWidget.apk`.
+2. **Abre el archivo** desde la notificación de descarga o desde *Mis archivos → Descargas*.
+3. Si aparece **"Por tu seguridad, no se permite instalar apps desconocidas"**, toca **Configuración**, activa **Permitir de esta fuente** y regresa.
+   - En **Samsung**, si no te deja, apaga primero *Ajustes → Seguridad y privacidad → **Protección automática***.
+4. Toca **Instalar**. Si Play Protect avisa que la app es desconocida, elige **Instalar de todas formas**. Pasa porque no viene de la Play Store.
+
+Luego sigue los pasos de [Uso](#uso). Requiere **Android 8.0 o superior**.
+
 ---
 
 ## Características
@@ -21,27 +39,23 @@ Widget nativo de Android (Kotlin) que muestra en la pantalla de inicio los **GB 
 
 ---
 
-## Instalación
+## Instalación avanzada
 
-### 1. Obtener el APK
-1. En la pestaña **Actions** de este repositorio, abre la ejecución más reciente de **Android APK** con ✅. Si no hay ninguna, elige **Run workflow**.
-2. En *Artifacts*, descarga **MiTelcelWidget-apk**. Es un `.zip` que contiene `app-debug.apk`.
+### Actualizar
+Descarga el APK nuevo con el mismo botón e instálalo encima. Tus líneas y widgets se conservan.
 
-### 2. Instalar en el teléfono
-
-**Opción A, desde el teléfono:** abre `app-debug.apk` y permite **"Instalar apps de origen desconocido"**.
-> En Samsung, si está activa **Ajustes → Seguridad y privacidad → Protección automática**, apágala para poder instalar.
-
-**Opción B, con `adb` desde la PC (recomendada para actualizar):**
+### Con `adb` desde la PC
 ```cmd
-adb uninstall mx.mitelcel.widget
-adb install app-debug.apk
+adb install -r MiTelcelWidget.apk
 adb shell dumpsys package mx.mitelcel.widget | findstr versionName
 ```
 `adb` viene en [SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools). En el teléfono hay que activar *Opciones de desarrollador → Depuración USB*.
 
+### Versiones de prueba (sin publicar)
+Cada push que modifique `android-app/` genera un APK en **Actions → Android APK → Artifacts**. Requiere iniciar sesión en GitHub, viene en `.zip` y caduca a los 90 días.
+
 > [!IMPORTANT]
-> Cada ejecución de Actions firma el APK con una llave distinta, y Android rechaza instalar una versión encima de otra firmada con otra llave. Si después de "actualizar" sigues viendo la versión anterior, **desinstala primero**. Para evitarlo, configura una [llave de firma fija](#llave-de-firma-fija-opcional).
+> Las versiones de prueba se firman con una llave temporal distinta en cada ejecución, salvo que exista la [llave de firma fija](#llave-de-firma-fija). Android rechaza instalar una app encima de otra con distinta firma: si después de "actualizar" sigues viendo la versión anterior, **desinstala primero**.
 
 ---
 
@@ -119,6 +133,7 @@ cd android-app
 1. Pruebas de `:core`.
 2. Compilación del APK y publicación como artefacto.
 3. Pruebas de humo con Robolectric.
+4. **Solo con etiquetas `v*`:** publica el APK en **Releases**.
 
 Si algo falla, los errores del compilador y de las pruebas aparecen como **anotaciones** en el resumen de la ejecución.
 
@@ -127,8 +142,18 @@ Si algo falla, los errores del compilador y de las pruebas aparecen como **anota
 2. Ejecuta `zsh .agents/skills/telcel-api-probe/scripts/probe_telcel.sh`. Prueba los endpoints, revoca la sesión al terminar y deja un resumen en `artifacts/`, carpeta que también ignora git.
 3. Compara con [`docs/telcel-api.md`](docs/telcel-api.md) y ajusta `HomeFlowParser.kt` o `TelcelClient.kt`, junto con sus pruebas.
 
-### Llave de firma fija (opcional)
-Para poder actualizar la app sin desinstalarla, ni perder las líneas guardadas:
+### Publicar una versión nueva
+1. Sube `versionCode` (+1) y `versionName` en `android-app/app/build.gradle.kts`.
+2. Crea y sube la etiqueta con **el mismo** `versionName`:
+   ```sh
+   git tag v1.4 && git push origin v1.4
+   ```
+3. El workflow compila, prueba y publica el Release con `MiTelcelWidget.apk`. El botón **Descargar APK** apunta solo a la versión nueva.
+
+El Release se rechaza si la etiqueta no coincide con `versionName` o si falta la llave de firma fija.
+
+### Llave de firma fija
+**Obligatoria para publicar Releases**: sin ella, nadie podría actualizar la app sin desinstalarla y perder sus líneas guardadas.
 
 ```sh
 keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey \
@@ -144,7 +169,7 @@ Guarda la salida como secreto `DEBUG_KEYSTORE_B64` en **Settings → Secrets and
 
 | Síntoma | Causa probable | Qué hacer |
 |---|---|---|
-| Después de actualizar sigue la versión vieja | Firma distinta: Android no reemplazó la app | `adb uninstall mx.mitelcel.widget` y reinstalar |
+| Después de actualizar sigue la versión vieja | Firma distinta (versión de prueba de Actions) | Desinstala y vuelve a instalar |
 | La app se cierra al abrir | Error en el código | Ábrela de nuevo y usa **Copiar error**, o `adb logcat -d -b crash` |
 | ⚠ con mensaje de Telcel | Contraseña incorrecta o Telcel cambió su API | Revisa la contraseña en la app oficial |
 | No se actualiza sola | Ahorro de batería | *Ajustes → Apps → Mi Telcel Widget → Batería → Sin restricciones* |
