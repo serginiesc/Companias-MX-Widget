@@ -89,7 +89,8 @@ object WidgetRenderer {
     fun accountIdsInUse(context: Context): Set<String> {
         val accounts = AccountStore(context)
         val configs = WidgetConfigStore(context)
-        return widgetIds(context).mapNotNull { resolveAccount(accounts, configs.get(it))?.id }.toSet()
+        // asList(): IntArray (arreglo de primitivos) no tiene mapNotNull; List<Int> sí.
+        return widgetIds(context).asList().mapNotNull { resolveAccount(accounts, configs.get(it))?.id }.toSet()
     }
 
     /** Si la línea configurada se borró (o el widget nunca se configuró), usa la primera. */
