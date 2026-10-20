@@ -7,6 +7,8 @@ import android.graphics.Bitmap
 import android.widget.FrameLayout
 import java.io.File
 import androidx.test.core.app.ApplicationProvider
+import java.time.LocalDate
+import mx.mitelcel.widget.core.Forecast
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.AccountStore
 import mx.mitelcel.widget.data.LayoutStyle
@@ -63,8 +65,9 @@ class AppSmokeTest {
     fun `el widget se dibuja con 0 1 y 2 líneas en todos los estilos`() {
         val parent = FrameLayout(context)
         val withData = UsageEntry.errorFallback.copy(totalMB = 15000.0, consumedMB = 9500.0, availableMB = 5500.0, daysLeft = 9)
-        val mine = Panel(withData, "Mía", "a")
-        val other = Panel(UsageEntry.errorFallback, "Esposa", "b")
+        // "Mía" no alcanza (pinta amarillo); "Esposa" tiene un dato viejo (se atenúa).
+        val mine = Panel(withData, "Mía", "a", Forecast.RunsOut(LocalDate.of(2026, 10, 25)))
+        val other = Panel(withData.copy(timestampMillis = 1L), "Esposa", "b", Forecast.Enough)
         val photo = Bitmap.createBitmap(40, 30, Bitmap.Config.ARGB_8888)
         // Todas las combinaciones: diseño × color de texto × opacidad × con/sin imagen.
         val styles = LayoutStyle.entries.flatMap { layout ->

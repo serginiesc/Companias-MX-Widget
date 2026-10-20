@@ -68,8 +68,6 @@ data class UsageEntry(
 
     val daysLeftText: String get() = "$daysLeft ${if (daysLeft == 1) "día" else "días"}"
 
-    val footerText: String
-        get() = "${if (hasPromo) "Plan+Promo" else planName} • ⏱ $updatedAt${if (isCached) " ☁" else ""}"
 
     companion object {
         private val SHORT_MONTH_REGEX =

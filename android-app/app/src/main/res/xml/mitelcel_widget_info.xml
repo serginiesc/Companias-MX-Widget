@@ -4,6 +4,7 @@
     configure: pantalla que se abre al agregar el widget (elegir línea y transparencia).
     reconfigurable (Android 12+): mantener presionado el widget muestra "Configurar" para cambiarlo después.
     minResize*: permite achicarlo a una fila (4×1), ideal para el diseño "Barra" con una línea.
+    previewLayout (Android 12+) / previewImage (anteriores): cómo se ve en la lista de widgets.
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:configure="mx.mitelcel.widget.WidgetConfigActivity"
@@ -13,6 +14,8 @@
     android:minHeight="110dp"
     android:minResizeHeight="50dp"
     android:minResizeWidth="110dp"
+    android:previewImage="@drawable/preview_gauge"
+    android:previewLayout="@layout/widget_preview"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="2"
     android:targetCellHeight="2"

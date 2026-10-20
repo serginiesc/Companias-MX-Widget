@@ -21,16 +21,13 @@ import com.google.android.material.slider.Slider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.Account
 import mx.mitelcel.widget.data.AccountStore
 import mx.mitelcel.widget.data.LayoutStyle
 import mx.mitelcel.widget.data.TextTone
-import mx.mitelcel.widget.data.UsageCache
 import mx.mitelcel.widget.data.WidgetConfig
 import mx.mitelcel.widget.data.WidgetConfigStore
 import mx.mitelcel.widget.widget.BackgroundImageStore
-import mx.mitelcel.widget.widget.Panel
 import mx.mitelcel.widget.widget.TextToneResolver
 import mx.mitelcel.widget.widget.WidgetRenderer
 import mx.mitelcel.widget.widget.WidgetStyle
@@ -44,7 +41,6 @@ class WidgetConfigActivity : AppCompatActivity() {
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private lateinit var configStore: WidgetConfigStore
     private lateinit var accountStore: AccountStore
-    private lateinit var cache: UsageCache
     private lateinit var images: BackgroundImageStore
 
     private lateinit var accountList: LinearLayout
@@ -99,7 +95,6 @@ class WidgetConfigActivity : AppCompatActivity() {
         SystemBars.applyInsets(findViewById(R.id.config_root))
         configStore = WidgetConfigStore(applicationContext)
         accountStore = AccountStore(applicationContext)
-        cache = UsageCache(applicationContext)
         images = BackgroundImageStore(applicationContext)
 
         accountList = findViewById(R.id.account_list)
@@ -244,7 +239,7 @@ class WidgetConfigActivity : AppCompatActivity() {
         val style = currentStyle()
         opacityLabel.text = getString(R.string.config_opacity, style.opacityPercent)
 
-        val panels = selectedAccounts().map { Panel(cache.load(it.id) ?: UsageEntry.errorFallback, it.alias, it.id) }
+        val panels = selectedAccounts().map { WidgetRenderer.panelFor(applicationContext, it) }
         // La vista previa toma la proporción con la que se ve mejor cada diseño en la pantalla de inicio:
         // medidor = 2×2 (o 4×2 con dos líneas); barra = 4×1 (o 4×2 con dos líneas, apiladas).
         val twoLines = panels.size > 1

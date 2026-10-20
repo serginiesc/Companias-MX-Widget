@@ -1,13 +1,18 @@
 package mx.mitelcel.widget.data
 
 import android.content.Context
+import java.io.IOException
 import mx.mitelcel.widget.core.BaitClient
 import mx.mitelcel.widget.core.Carrier
 import mx.mitelcel.widget.core.TelcelClient
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.core.UsageProvider
 
-data class RefreshResult(val entry: UsageEntry, val error: String? = null)
+/**
+ * @param retryable true solo si falló la RED (sin señal, tiempo agotado): vale la pena reintentar pronto.
+ *   Un error de contraseña o de la compañía NO se reintenta: repetir el login puede bloquear la cuenta.
+ */
+data class RefreshResult(val entry: UsageEntry, val error: String? = null, val retryable: Boolean = false)
 
 /**
  * Único punto que decide de dónde salen los datos de cada línea: caché reciente, su compañía o respaldo.
@@ -19,6 +24,7 @@ class UsageRepository(
     private val providers: (Carrier) -> UsageProvider = { defaultProvider(it) },
     val accounts: AccountStore = AccountStore(context),
     private val cache: UsageCache = UsageCache(context),
+    val history: UsageHistoryStore = UsageHistoryStore(context),
 ) {
     fun cachedOrFallback(accountId: String?): UsageEntry =
         accountId?.let { cache.load(it) } ?: UsageEntry.errorFallback
@@ -26,6 +32,7 @@ class UsageRepository(
     fun deleteAccount(accountId: String) {
         accounts.delete(accountId)
         cache.delete(accountId)
+        history.delete(accountId)
     }
 
     /**
@@ -46,9 +53,13 @@ class UsageRepository(
             return try {
                 val entry = providers(account.carrier).fetchUsage(account.phone, password)
                 cache.save(accountId, entry)
+                history.record(accountId, entry)
                 RefreshResult(entry)
+            } catch (e: IOException) {
+                // OkHttp lanza IOException cuando no hay red o se agota el tiempo.
+                RefreshResult(cachedOrFallback(accountId), "Sin conexión", retryable = true)
             } catch (e: Exception) {
-                RefreshResult(cachedOrFallback(accountId), e.message ?: "Error de conexión")
+                RefreshResult(cachedOrFallback(accountId), e.message ?: "Error de la compañía")
             }
         }
     }

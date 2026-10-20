@@ -7,18 +7,30 @@ import android.content.Context
 import android.content.Intent
 import android.view.View
 import android.widget.RemoteViews
+import java.time.Instant
+import java.time.ZoneId
 import mx.mitelcel.widget.R
 import mx.mitelcel.widget.WidgetConfigActivity
+import mx.mitelcel.widget.core.Forecast
+import mx.mitelcel.widget.core.Forecaster
+import mx.mitelcel.widget.core.Freshness
+import mx.mitelcel.widget.core.StatusLine
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.Account
 import mx.mitelcel.widget.data.AccountStore
 import mx.mitelcel.widget.data.LayoutStyle
 import mx.mitelcel.widget.data.UsageCache
+import mx.mitelcel.widget.data.UsageHistoryStore
 import mx.mitelcel.widget.data.WidgetConfig
 import mx.mitelcel.widget.data.WidgetConfigStore
 
 /** Lo que se dibuja de UNA línea dentro del widget. */
-data class Panel(val entry: UsageEntry, val title: String, val accountId: String? = null)
+data class Panel(
+    val entry: UsageEntry,
+    val title: String,
+    val accountId: String? = null,
+    val forecast: Forecast = Forecast.Unknown,
+)
 
 /**
  * Convierte datos en la vista del widget. No sabe nada de red.
@@ -81,7 +93,10 @@ object WidgetRenderer {
         index: Int,
         statusText: String?,
     ): RemoteViews {
-        val palette = style.palette
+        val now = Instant.now()
+        val stale = Freshness.isStale(panel.entry.timestampMillis, now)
+        // Si a este ritmo no alcanza, lo "disponible" se pinta de amarillo en lugar de verde.
+        val palette = if (panel.forecast is Forecast.RunsOut) style.palette.copy(available = style.palette.warn) else style.palette
         // El layout depende del diseño y de la sombra del texto (RemoteViews no deja cambiarla en código).
         val views = RemoteViews(context.packageName, style.panelLayout)
         val entry = panel.entry
@@ -116,7 +131,9 @@ object WidgetRenderer {
         }
         views.setTextViewText(R.id.widget_spent, "● ${entry.spentShortText} (${entry.percentUsed}%)")
         views.setTextViewText(R.id.widget_daily, "● ${entry.dailyAllowanceText}")
-        views.setTextViewText(R.id.widget_footer, statusText ?: entry.footerText)
+        views.setTextViewText(R.id.widget_footer, statusText ?: StatusLine.of(entry, panel.forecast, now, ZoneId.systemDefault()))
+        // Dato viejo: el medidor/barra se atenúa para que no se lea como si fuera actual.
+        views.setInt(R.id.widget_gauge, "setImageAlpha", if (stale) 110 else 255)
 
         if (appWidgetId != null) {
             // Encabezado = configurar ESTE widget; resto del panel = actualizar ESA línea.
@@ -124,6 +141,13 @@ object WidgetRenderer {
             views.setOnClickPendingIntent(R.id.widget_body, refreshIntent(context, appWidgetId, index, panel.accountId))
         }
         return views
+    }
+
+    /** Panel de una línea con su último dato y su pronóstico. Lo usan el widget y las vistas previas. */
+    fun panelFor(context: Context, account: Account, entry: UsageEntry? = null): Panel {
+        val data = entry ?: UsageCache(context).load(account.id) ?: UsageEntry.errorFallback
+        val forecast = Forecaster.forecast(data, UsageHistoryStore(context).samples(account.id), Instant.now(), ZoneId.systemDefault())
+        return Panel(data, account.alias, account.id, forecast)
     }
 
     /** Redibuja un widget con las líneas y opacidad que tiene configuradas. */
@@ -135,10 +159,7 @@ object WidgetRenderer {
         statusAccountId: String? = null,
     ) {
         val config = WidgetConfigStore(context).get(appWidgetId)
-        val cache = UsageCache(context)
-        val panels = resolveAccounts(AccountStore(context), config).map { account ->
-            Panel(cache.load(account.id) ?: UsageEntry.errorFallback, account.alias, account.id)
-        }
+        val panels = resolveAccounts(AccountStore(context), config).map { panelFor(context, it) }
         manager.updateAppWidget(
             appWidgetId,
             build(context, panels, WidgetStyle.forWidget(context, appWidgetId, config), appWidgetId, statusText, statusAccountId),

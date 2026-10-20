@@ -1,16 +1,22 @@
 package mx.mitelcel.widget
 
+import android.Manifest
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
@@ -20,7 +26,10 @@ import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
+import java.time.ZoneId
 import mx.mitelcel.widget.core.Carrier
+import mx.mitelcel.widget.core.DailyUsage
 import mx.mitelcel.widget.core.ReleaseInfo
 import mx.mitelcel.widget.core.TelcelClient
 import mx.mitelcel.widget.core.UsageEntry
@@ -57,6 +66,9 @@ class MainActivity : AppCompatActivity() {
         Carrier.TELCEL to R.id.carrier_telcel,
         Carrier.BAIT to R.id.carrier_bait,
     )
+
+    /** Android 13+: permiso de notificaciones. Si lo niega, la app funciona igual, solo sin avisos. */
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     /** null = el formulario agrega una línea nueva; con valor = está editando esa línea. */
     private var editingAccount: Account? = null
@@ -168,6 +180,7 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(label)
+            addView(textButton(this, "Historial") { showHistory(account) })
             addView(textButton(this, "Editar") { startEditing(account) })
             addView(textButton(this, "Borrar") { confirmDelete(account) })
         }
@@ -234,7 +247,46 @@ class MainActivity : AppCompatActivity() {
             showPreview(account, result.entry)
             statusText.text = result.error?.let { "⚠ ${account.alias}: $it" }
                 ?: "✓ ${account.alias} actualizada."
+            askNotificationPermissionOnce()
         }
+    }
+
+    /** Se pide justo después de guardar una línea: así el usuario entiende para qué sirve. */
+    private fun askNotificationPermissionOnce() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        val prefs = getSharedPreferences("ui", MODE_PRIVATE)
+        if (prefs.getBoolean("asked_notifications", false)) return // una sola vez: no insistir
+        prefs.edit().putBoolean("asked_notifications", true).apply()
+        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    /** Gráfica de los últimos 14 días. Se llena sola: una foto por cada actualización. */
+    private fun showHistory(account: Account) {
+        val days = DailyUsage.fromSamples(
+            repository.history.samples(account.id),
+            LocalDate.now(),
+            ZoneId.systemDefault(),
+        )
+        val entry = repository.cachedOrFallback(account.id)
+        val textColor = TextView(this).currentTextColor // respeta tema claro/oscuro
+        val message = if (days.all { it.consumedMB == 0.0 }) {
+            "Todavía no hay historial: se llena solo con cada actualización. Vuelve en un par de días."
+        } else {
+            "Consumo por día, últimos 14 días."
+        }
+        val chart = ImageView(this).apply {
+            setImageBitmap(HistoryChartRenderer.render(days, entry.mbPerGb, textColor))
+            adjustViewBounds = true
+            val pad = (16 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad, pad, 0)
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Historial · ${account.alias}")
+            .setMessage(message)
+            .setView(chart)
+            .setPositiveButton("Cerrar", null)
+            .show()
     }
 
     private fun confirmDelete(account: Account) {
@@ -266,7 +318,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPreview(account: Account?, entry: UsageEntry = repository.cachedOrFallback(account?.id)) {
-        val panel = Panel(entry, account?.alias ?: getString(R.string.app_short_name), account?.id)
+        val panel = account?.let { WidgetRenderer.panelFor(applicationContext, it, entry) }
+            ?: Panel(entry, getString(R.string.app_short_name))
         val views = WidgetRenderer.build(applicationContext, listOf(panel))
         previewContainer.removeAllViews()
         // RemoteViews.apply(context, parent) infla la vista real (no es la función "apply" de Kotlin).

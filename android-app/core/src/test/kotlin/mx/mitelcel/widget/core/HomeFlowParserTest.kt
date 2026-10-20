@@ -62,7 +62,6 @@ class HomeFlowParserTest {
         assertEquals("9.50 GB", entry.spentShortText)
         assertEquals(63, entry.percentUsed)
         assertEquals("608 MB/d", entry.dailyAllowanceText)
-        assertEquals("Plan+Promo • ⏱ 16:09", entry.footerText)
         assertEquals("1 día", entry.copy(daysLeft = 1).daysLeftText)
     }
 
