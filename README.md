@@ -1,21 +1,21 @@
-# Mi Telcel Widget para Android
+# Mis Datos MX: widget de datos móviles para Android
 
-Widget nativo de Android (Kotlin) que muestra en la pantalla de inicio los **GB disponibles (Plan + Promo)**, el consumo, los días restantes y la fecha de corte de una o varias líneas **Mi Telcel**.
+Widget nativo de Android (Kotlin) que muestra en la pantalla de inicio los **GB disponibles (plan + promociones)**, el consumo, los días restantes y la fecha de corte de tus líneas de **Telcel** y **Bait**. AT&T viene en camino.
 
 > [!WARNING]
-> **App no oficial.** Usa los mismos servicios que la web de Mi Telcel. Si Telcel los cambia, el widget dejará de actualizarse.
+> **App no oficial.** Usa los mismos servicios que la web de cada compañía. Si alguna los cambia, el widget dejará de actualizarse para esa compañía.
 
 ## 📲 Descargar
 
 <p align="center">
-  <a href="https://github.com/serginiesc/telcel-widget-android/releases/latest/download/MiTelcelWidget.apk">
-    <img src="https://img.shields.io/github/v/release/serginiesc/telcel-widget-android?label=Descargar%20APK&style=for-the-badge&logo=android&color=33D64A" alt="Descargar APK">
+  <a href="https://github.com/serginiesc/companias-mx-widget/releases/latest/download/CompaniasMxWidget.apk">
+    <img src="https://img.shields.io/github/v/release/serginiesc/companias-mx-widget?label=Descargar%20APK&style=for-the-badge&logo=android&color=33D64A" alt="Descargar APK">
   </a>
 </p>
 
 **¿Primera vez instalando una app fuera de la Play Store?** Desde tu celular Android:
 
-1. **Toca el botón verde de arriba.** Se descarga `MiTelcelWidget.apk`.
+1. **Toca el botón verde de arriba.** Se descarga `CompaniasMxWidget.apk`.
 2. **Abre el archivo** desde la notificación de descarga o desde *Mis archivos → Descargas*.
 3. Si aparece **"Por tu seguridad, no se permite instalar apps desconocidas"**, toca **Configuración**, activa **Permitir de esta fuente** y regresa.
    - En **Samsung**, si no te deja, apaga primero *Ajustes → Seguridad y privacidad → **Protección automática***.
@@ -27,14 +27,16 @@ Luego sigue los pasos de [Uso](#uso). Requiere **Android 8.0 o superior**.
 
 ## Características
 
-- **Varias líneas:** guarda tantas líneas como quieras, cada una con un apodo ("Mía", "Esposa").
+- **Varias compañías:** Telcel (número y contraseña) y Bait (solo número). Eliges la compañía al agregar cada línea.
+- **Varias líneas:** guarda tantas como quieras, cada una con un apodo ("Mía", "Esposa").
 - **Una o dos líneas por widget:** con dos, se muestran lado a lado (recomendado 4×2).
-- **Fondo transparente configurable:** deslizador de opacidad de 0% a 100% por widget, con sombra en los textos para que se lean sobre cualquier fondo de pantalla.
+- **Apariencia por widget:** opacidad del fondo de 0% a 100%, **imagen de fondo** de tu galería y **color de texto** blanco, negro o automático (según tu fondo de pantalla o la imagen).
 - **Medidor semicircular:** rojo = gastado, verde = disponible, porcentaje usado y presupuesto diario (`MB/d` o `GB/d`).
 - **Contraseñas cifradas** con AES-GCM y una llave del **Android Keystore**. Nunca salen del teléfono, excepto hacia Telcel.
 - **Caché local:** si no hay red, muestra el último dato con ☁.
 - **Actualización automática** cada 30 minutos (WorkManager) y manual al tocar el medidor.
 - **Sesión segura:** el token SSO se revoca siempre al terminar, aunque algo falle, y las consultas van una por una para no abrir sesiones simultáneas.
+- **Actualizaciones desde la app:** al abrirla avisa si hay una versión nueva y la instala con un toque.
 - **Reporte de errores integrado:** si la app se cierra, al abrirla de nuevo muestra el error con un botón para copiarlo.
 
 ---
@@ -42,11 +44,13 @@ Luego sigue los pasos de [Uso](#uso). Requiere **Android 8.0 o superior**.
 ## Instalación avanzada
 
 ### Actualizar
-Descarga el APK nuevo con el mismo botón e instálalo encima. Tus líneas y widgets se conservan.
+Desde la v1.4, la app avisa sola: al abrirla aparece **"Hay una versión nueva → Actualizar"**. La primera vez Android te pedirá permitir que *Mis Datos MX* instale apps; después solo confirmas **Actualizar**. Tus líneas y widgets se conservan.
+
+También puedes descargar el APK nuevo con el botón de arriba e instalarlo encima.
 
 ### Con `adb` desde la PC
 ```cmd
-adb install -r MiTelcelWidget.apk
+adb install -r CompaniasMxWidget.apk
 adb shell dumpsys package mx.mitelcel.widget | findstr versionName
 ```
 `adb` viene en [SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools). En el teléfono hay que activar *Opciones de desarrollador → Depuración USB*.
@@ -61,11 +65,13 @@ Cada push que modifique `android-app/` genera un APK en **Actions → Android AP
 
 ## Uso
 
-1. Abre **Mi Telcel Widget** y agrega tus líneas (apodo, número a 10 dígitos y contraseña). Pulsa **Guardar y actualizar**.
-2. Agrega el widget: mantén presionado el fondo de la pantalla → *Widgets* → *Mi Telcel Widget*.
+1. Abre **Mis Datos MX** y agrega tus líneas: compañía, apodo, número a 10 dígitos y, en Telcel, contraseña. Pulsa **Guardar y actualizar**.
+2. Agrega el widget: mantén presionado el fondo de la pantalla → *Widgets* → *Mis Datos MX*.
 3. Se abre **Configurar widget**:
-   - Marca **una o dos líneas**.
+   - Marca **una o dos líneas** (pueden ser de compañías distintas).
    - Ajusta la **opacidad del fondo** (0% = transparente).
+   - Elige el **color del texto**: Automático, Blanco o Negro.
+   - Opcional: **Elegir imagen** para usar una foto como fondo.
 4. En el widget:
    - **Toca el medidor** para actualizar esa línea.
    - **Toca el encabezado** para cambiar las líneas o la transparencia de ese widget.
@@ -84,13 +90,17 @@ Cada push que modifique `android-app/` genera un APK en **Actions → Android AP
     ├── settings.gradle.kts             Módulos :core y :app
     ├── core/                           Kotlin puro (sin Android), probado con JUnit
     │   └── src/main/kotlin/mx/mitelcel/widget/core/
-    │       ├── TelcelClient.kt         Login SSO → token B2F → consumo (Wave B2F) → revocar SSO
+    │       ├── UsageProvider.kt        Interfaz común + enum Carrier (compañías soportadas)
+    │       ├── TelcelClient.kt         Telcel: login SSO → token B2F → consumo (Wave B2F) → revocar SSO
+    │       ├── BaitClient.kt           Bait: consulta por número (sin login) + parser de bolsas
+    │       ├── UpdateChecker.kt        Busca versiones nuevas en GitHub Releases y descarga el APK
     │       ├── HomeFlowParser.kt       Suma las bolsas de datos y extrae fecha y días de corte
     │       └── UsageEntry.kt           Modelo y textos del widget ("9 días", "608 MB/d"…)
     └── app/                            Todo lo que depende de Android
         └── src/main/kotlin/mx/mitelcel/widget/
             ├── MainActivity.kt         Administrar líneas (agregar, editar, borrar) y vista previa
-            ├── WidgetConfigActivity.kt Elegir líneas y transparencia de cada widget
+            ├── WidgetConfigActivity.kt Elegir líneas, opacidad, color de texto e imagen de cada widget
+            ├── UpdateManager.kt        Aviso de versión nueva e instalación (FileProvider)
             ├── CrashReporter.kt        Guarda el último error que cerró la app
             ├── CrashReportActivity.kt  Muestra ese error para copiarlo
             ├── data/
@@ -102,8 +112,9 @@ Cada push que modifique `android-app/` genera un APK en **Actions → Android AP
             ├── widget/
             │   ├── MiTelcelWidgetProvider.kt  Eventos del widget (agregar, quitar, tocar)
             │   ├── WidgetRenderer.kt   Arma el widget: contenedor + un panel por línea
-            │   ├── GaugeRenderer.kt    Dibuja el medidor semicircular en un Bitmap
-            │   └── WidgetColors.kt
+            │   ├── WidgetStyle.kt      Opacidad, paleta (texto claro/oscuro) y modo Automático
+            │   ├── BackgroundImageStore.kt Copia y reduce la foto de fondo de cada widget
+            │   └── GaugeRenderer.kt    Dibuja el medidor semicircular en un Bitmap
             └── work/
                 └── RefreshWorker.kt    Actualización en segundo plano (WorkManager)
 ```
@@ -111,6 +122,7 @@ Cada push que modifique `android-app/` genera un APK en **Actions → Android AP
 ### Decisiones de diseño
 - **`:core` sin Android:** la red y el parser no dependen del framework (Inversión de Dependencias), así que se prueban en segundos en la JVM.
 - **Un solo punto de acceso a datos:** el widget, el Worker y las pantallas pasan por `UsageRepository`. Ninguno habla directo con la red.
+- **Una clase por compañía (`UsageProvider`):** agregar una compañía es crear una clase nueva sin tocar el widget ni las pantallas (principio Abierto/Cerrado).
 - **`SecretBox` como interfaz:** en producción cifra con el Keystore; en las pruebas se sustituye por una versión falsa, porque el simulador no tiene Keystore.
 - **Widget = contenedor + paneles:** cada línea es un `RemoteViews` que se agrega con `addView`, así 1 o 2 líneas usan el mismo código.
 - **El Provider nunca hace red:** Android lo detiene si tarda más de unos 10 s. El trabajo pesado va en `RefreshWorker`.
@@ -148,7 +160,7 @@ Si algo falla, los errores del compilador y de las pruebas aparecen como **anota
    ```sh
    git tag v1.4 && git push origin v1.4
    ```
-3. El workflow compila, prueba y publica el Release con `MiTelcelWidget.apk`. El botón **Descargar APK** apunta solo a la versión nueva.
+3. El workflow compila, prueba y publica el Release con `CompaniasMxWidget.apk`. El botón **Descargar APK** apunta solo a la versión nueva.
 
 El Release se rechaza si la etiqueta no coincide con `versionName` o si falta la llave de firma fija.
 
@@ -171,12 +183,15 @@ Guarda la salida como secreto `DEBUG_KEYSTORE_B64` en **Settings → Secrets and
 |---|---|---|
 | Después de actualizar sigue la versión vieja | Firma distinta (versión de prueba de Actions) | Desinstala y vuelve a instalar |
 | La app se cierra al abrir | Error en el código | Ábrela de nuevo y usa **Copiar error**, o `adb logcat -d -b crash` |
-| ⚠ con mensaje de Telcel | Contraseña incorrecta o Telcel cambió su API | Revisa la contraseña en la app oficial |
-| No se actualiza sola | Ahorro de batería | *Ajustes → Apps → Mi Telcel Widget → Batería → Sin restricciones* |
+| ⚠ con mensaje de la compañía | Contraseña incorrecta o la compañía cambió su API | Revisa la contraseña en la app oficial |
+| No se actualiza sola | Ahorro de batería | *Ajustes → Apps → Mis Datos MX → Batería → Sin restricciones* |
 | Muestra ☁ | Sin red: es el último dato guardado | Toca el medidor cuando haya conexión |
 
 ---
 
+> [!NOTE]
+> **Privacidad en Bait:** su servicio entrega el consumo con solo el número, sin contraseña. Cualquiera que conozca tu número de Bait puede consultarlo en mibait.com. Esta app no cambia eso.
+
 ## Créditos
 
-El flujo de autenticación y el parser de la respuesta de Telcel están basados en [amaynez/telcel-widget-agy](https://github.com/amaynez/telcel-widget-agy) (widget para iOS), de Armando Maynez.
+- Telcel y Bait: el flujo de autenticación y los parsers están basados en [amaynez/telcel-widget-agy](https://github.com/amaynez/telcel-widget-agy) (widgets para iOS), de Armando Maynez.

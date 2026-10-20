@@ -13,12 +13,15 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import mx.mitelcel.widget.core.Carrier
+import mx.mitelcel.widget.core.ReleaseInfo
 import mx.mitelcel.widget.core.TelcelClient
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.Account
@@ -45,6 +48,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progress: ProgressBar
     private lateinit var statusText: TextView
     private lateinit var previewContainer: FrameLayout
+    private lateinit var carrierGroup: MaterialButtonToggleGroup
+    private lateinit var baitNotice: TextView
+    private lateinit var updateManager: UpdateManager
+
+    /** Un botón por compañía. Para agregar una compañía: valor en Carrier + botón en el layout + entrada aquí. */
+    private val carrierButtons = mapOf(
+        Carrier.TELCEL to R.id.carrier_telcel,
+        Carrier.BAIT to R.id.carrier_bait,
+    )
 
     /** null = el formulario agrega una línea nueva; con valor = está editando esa línea. */
     private var editingAccount: Account? = null
@@ -74,14 +86,68 @@ class MainActivity : AppCompatActivity() {
         progress = findViewById(R.id.progress)
         statusText = findViewById(R.id.status_text)
         previewContainer = findViewById(R.id.preview_container)
+        carrierGroup = findViewById(R.id.carrier_group)
+        baitNotice = findViewById(R.id.bait_notice)
+        updateManager = UpdateManager(applicationContext)
 
+        carrierGroup.addOnButtonCheckedListener { _, _, isChecked -> if (isChecked) onCarrierChanged() }
         saveButton.setOnClickListener { onSaveClicked() }
         cancelEditButton.setOnClickListener { resetForm() }
         setupPinButton(findViewById(R.id.pin_button))
 
         renderAccounts()
         showPreview(repository.accounts.list().firstOrNull())
+        onCarrierChanged()
     }
+
+    override fun onResume() {
+        super.onResume()
+        if (::updateManager.isInitialized) checkForUpdate()
+    }
+
+    // ------------------------------------------------------------------ compañía
+
+    private fun selectedCarrier(): Carrier =
+        carrierButtons.entries.firstOrNull { it.value == carrierGroup.checkedButtonId }?.key ?: Carrier.TELCEL
+
+    /** Bait no usa contraseña: ocultamos el campo para no pedir algo que no se necesita. */
+    private fun onCarrierChanged() {
+        val carrier = selectedCarrier()
+        passwordLayout.visibility = if (carrier.needsPassword) View.VISIBLE else View.GONE
+        baitNotice.visibility = if (carrier == Carrier.BAIT) View.VISIBLE else View.GONE
+        passwordLayout.error = null
+    }
+
+    // ------------------------------------------------------------- actualizaciones
+
+    private fun checkForUpdate() {
+        lifecycleScope.launch {
+            val release = withContext(Dispatchers.IO) { updateManager.check() } ?: return@launch
+            findViewById<TextView>(R.id.update_text).text = getString(R.string.update_available, release.version)
+            findViewById<View>(R.id.update_card).visibility = View.VISIBLE
+            findViewById<MaterialButton>(R.id.update_button).setOnClickListener { installUpdate(release) }
+        }
+    }
+
+    private fun installUpdate(release: ReleaseInfo) {
+        // Primero el permiso "instalar apps desconocidas" para ESTA app: sin él, Android rechaza el APK.
+        if (!updateManager.canInstall()) {
+            statusText.setText(R.string.update_allow_install)
+            startActivity(updateManager.installPermissionIntent())
+            return
+        }
+        val button = findViewById<MaterialButton>(R.id.update_button)
+        button.isEnabled = false
+        statusText.text = getString(R.string.update_downloading, release.version)
+        lifecycleScope.launch {
+            val apk = withContext(Dispatchers.IO) { runCatching { updateManager.download(release) } }
+            button.isEnabled = true
+            apk.onSuccess { startActivity(updateManager.installIntent(it)) }
+                .onFailure { statusText.text = "⚠ ${it.message ?: "No se pudo descargar la actualización"}" }
+        }
+    }
+
+    // --------------------------------------------------------------------- líneas
 
     private fun renderAccounts() {
         val accounts = repository.accounts.list()
@@ -90,10 +156,10 @@ class MainActivity : AppCompatActivity() {
         accounts.forEach { accountsContainer.addView(accountRow(it)) }
     }
 
-    /** Una fila: "Mía · 5512345678   [Editar] [Borrar]". Tocar el texto muestra su vista previa. */
+    /** Una fila: "Mía · Telcel · 5512345678   [Editar] [Borrar]". Tocar el texto muestra su vista previa. */
     private fun accountRow(account: Account): View {
         val label = TextView(this).apply {
-            text = "${account.alias}  ·  ${account.phone}"
+            text = "${account.alias}  ·  ${account.carrier.displayName}  ·  ${account.phone}"
             textSize = 15f
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener { showPreview(account) }
@@ -118,6 +184,7 @@ class MainActivity : AppCompatActivity() {
         formTitle.text = getString(R.string.edit_line, account.alias)
         aliasInput.setText(account.alias)
         phoneInput.setText(account.phone)
+        carrierGroup.check(carrierButtons.getValue(account.carrier))
         passwordInput.setText("")
         passwordLayout.helperText = getString(R.string.keep_password_hint)
         cancelEditButton.visibility = View.VISIBLE
@@ -134,23 +201,28 @@ class MainActivity : AppCompatActivity() {
         passwordLayout.error = null
         passwordLayout.helperText = null
         cancelEditButton.visibility = View.GONE
+        carrierGroup.check(R.id.carrier_telcel)
     }
 
     private fun onSaveClicked() {
         val editing = editingAccount
+        val carrier = selectedCarrier()
         val phone = TelcelClient.normalizePhone(phoneInput.text?.toString().orEmpty())
         val password = passwordInput.text?.toString().orEmpty()
         val alias = aliasInput.text?.toString()?.trim().orEmpty()
             .ifEmpty { "Línea ${repository.accounts.list().size + if (editing == null) 1 else 0}" }
 
         phoneLayout.error = if (phone.length != 10) "Debe tener 10 dígitos" else null
-        passwordLayout.error = if (editing == null && password.isEmpty()) "Escribe la contraseña" else null
+        // Se puede dejar vacía solo al editar una línea de la MISMA compañía (se conserva la guardada).
+        val canKeepPassword = editing != null && editing.carrier == carrier
+        passwordLayout.error =
+            if (carrier.needsPassword && password.isEmpty() && !canKeepPassword) "Escribe la contraseña" else null
         if (phoneLayout.error != null || passwordLayout.error != null) return
 
         setBusy(true)
         lifecycleScope.launch {
             val (account, result) = withContext(Dispatchers.IO) {
-                val saved = repository.accounts.save(alias, phone, password, editing?.id)
+                val saved = repository.accounts.save(alias, phone, password, editing?.id, carrier)
                 saved to repository.refresh(saved.id, minAgeMillis = 0) // 0 = forzar consulta real
             }
             setBusy(false)
@@ -168,7 +240,7 @@ class MainActivity : AppCompatActivity() {
     private fun confirmDelete(account: Account) {
         MaterialAlertDialogBuilder(this)
             .setTitle("¿Borrar ${account.alias}?")
-            .setMessage("Se borrarán su número y contraseña de este teléfono. Los widgets que la mostraban pasarán a la primera línea.")
+            .setMessage("Se borrarán sus datos de este teléfono. Los widgets que la mostraban pasarán a la primera línea.")
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Borrar") { _, _ ->
                 repository.deleteAccount(account.id)
@@ -194,8 +266,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPreview(account: Account?, entry: UsageEntry = repository.cachedOrFallback(account?.id)) {
-        val panel = Panel(entry, account?.alias ?: "Mi Telcel", account?.id)
-        val views = WidgetRenderer.build(applicationContext, listOf(panel), opacityPercent = 100)
+        val panel = Panel(entry, account?.alias ?: getString(R.string.app_short_name), account?.id)
+        val views = WidgetRenderer.build(applicationContext, listOf(panel))
         previewContainer.removeAllViews()
         // RemoteViews.apply(context, parent) infla la vista real (no es la función "apply" de Kotlin).
         // Se usa applicationContext a propósito: con la Activity, AppCompat cambia ImageView por
@@ -206,6 +278,6 @@ class MainActivity : AppCompatActivity() {
     private fun setBusy(busy: Boolean) {
         saveButton.isEnabled = !busy
         progress.visibility = if (busy) View.VISIBLE else View.GONE
-        if (busy) statusText.text = "Consultando a Telcel…"
+        if (busy) statusText.text = "Consultando a ${selectedCarrier().displayName}…"
     }
 }

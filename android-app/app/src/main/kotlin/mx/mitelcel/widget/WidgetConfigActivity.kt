@@ -2,43 +2,80 @@ package mx.mitelcel.widget
 
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.slider.Slider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.Account
 import mx.mitelcel.widget.data.AccountStore
+import mx.mitelcel.widget.data.TextTone
 import mx.mitelcel.widget.data.UsageCache
 import mx.mitelcel.widget.data.WidgetConfig
 import mx.mitelcel.widget.data.WidgetConfigStore
+import mx.mitelcel.widget.widget.BackgroundImageStore
 import mx.mitelcel.widget.widget.Panel
+import mx.mitelcel.widget.widget.TextToneResolver
 import mx.mitelcel.widget.widget.WidgetRenderer
+import mx.mitelcel.widget.widget.WidgetStyle
 import mx.mitelcel.widget.work.RefreshWorker
 
 /**
  * Se abre al agregar un widget (Android la lanza sola) o al tocar el encabezado del widget.
- * Permite elegir qué líneas muestra (una o dos) y la transparencia del fondo.
+ * Permite elegir las líneas (una o dos), la opacidad, el color del texto y una imagen de fondo.
  */
 class WidgetConfigActivity : AppCompatActivity() {
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private lateinit var configStore: WidgetConfigStore
     private lateinit var accountStore: AccountStore
     private lateinit var cache: UsageCache
+    private lateinit var images: BackgroundImageStore
 
     private lateinit var accountList: LinearLayout
     private lateinit var opacityLabel: TextView
     private lateinit var opacitySlider: Slider
+    private lateinit var toneGroup: MaterialButtonToggleGroup
     private lateinit var previewFrame: FrameLayout
     private lateinit var preview: FrameLayout
 
     /** Casilla -> línea, en el mismo orden en que se muestran. */
     private val checkBoxes = linkedMapOf<CheckBox, Account>()
+
+    private val toneButtons = mapOf(
+        TextTone.AUTO to R.id.tone_auto,
+        TextTone.WHITE to R.id.tone_white,
+        TextTone.BLACK to R.id.tone_black,
+    )
+
+    // Estado de la imagen de fondo mientras se configura (se aplica al Guardar).
+    private var hasImage = false
+    private var imageIsLight = false
+    private var imageIsPending = false // true = el usuario eligió una foto nueva aún no guardada
+    private var imageBitmap: Bitmap? = null // decodificada una sola vez, no en cada movimiento del slider
+    private var saved = false
+
+    /** Consultar los colores del fondo de pantalla es una llamada al sistema: una sola vez por pantalla. */
+    private val wallpaperIsLight by lazy { WidgetStyle.wallpaperIsLight(applicationContext) }
+
+    /** Photo Picker: no requiere permiso de galería; Android solo nos da la foto que el usuario elige. */
+    private val pickImage = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) onImagePicked(uri)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,10 +93,12 @@ class WidgetConfigActivity : AppCompatActivity() {
         configStore = WidgetConfigStore(applicationContext)
         accountStore = AccountStore(applicationContext)
         cache = UsageCache(applicationContext)
+        images = BackgroundImageStore(applicationContext)
 
         accountList = findViewById(R.id.account_list)
         opacityLabel = findViewById(R.id.opacity_label)
         opacitySlider = findViewById(R.id.opacity_slider)
+        toneGroup = findViewById(R.id.text_tone_group)
         previewFrame = findViewById(R.id.preview_frame)
         preview = findViewById(R.id.config_preview)
 
@@ -67,11 +106,24 @@ class WidgetConfigActivity : AppCompatActivity() {
             startActivity(Intent(this, MainActivity::class.java))
         }
         findViewById<MaterialButton>(R.id.config_save_button).setOnClickListener { save() }
+        findViewById<MaterialButton>(R.id.pick_image_button).setOnClickListener {
+            pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
+        findViewById<MaterialButton>(R.id.remove_image_button).setOnClickListener { removeImage() }
 
         val current = configStore.get(appWidgetId)
         // El Slider truena si el valor no es múltiplo de stepSize (5): redondeamos por si acaso.
         opacitySlider.value = ((current.opacityPercent + 2) / 5 * 5).coerceIn(0, 100).toFloat()
         opacitySlider.addOnChangeListener { _, _, _ -> renderPreview() }
+        toneGroup.check(toneButtons.getValue(current.textTone))
+        toneGroup.addOnButtonCheckedListener { _, _, isChecked -> if (isChecked) renderPreview() }
+
+        hasImage = current.hasBackgroundImage
+        imageIsLight = current.imageIsLight
+        imageBitmap = if (hasImage) images.load(appWidgetId) else null
+        hasImage = imageBitmap != null // si el archivo se perdió, no fingimos que hay imagen
+        updateImageButtons()
+
         bindAccounts(WidgetRenderer.resolveAccounts(accountStore, current).map { it.id })
     }
 
@@ -81,6 +133,14 @@ class WidgetConfigActivity : AppCompatActivity() {
         if (::accountList.isInitialized) bindAccounts(selectedAccounts().map { it.id })
     }
 
+    override fun onDestroy() {
+        // Salió sin guardar: la foto elegida no se usa, así que no la dejamos ocupando espacio.
+        if (isFinishing && !saved && ::images.isInitialized) images.discardPending(appWidgetId)
+        super.onDestroy()
+    }
+
+    // ----------------------------------------------------------------- líneas
+
     private fun bindAccounts(selectedIds: List<String>) {
         val accounts = accountStore.list()
         accountList.removeAllViews()
@@ -89,7 +149,7 @@ class WidgetConfigActivity : AppCompatActivity() {
 
         accounts.forEach { account ->
             val box = CheckBox(this).apply {
-                text = "${account.alias}  ·  ${account.phone}"
+                text = "${account.alias}  ·  ${account.carrier.displayName}  ·  ${account.phone}"
                 isChecked = account.id in selectedIds
                 setOnCheckedChangeListener { _, _ -> onSelectionChanged() }
             }
@@ -110,9 +170,65 @@ class WidgetConfigActivity : AppCompatActivity() {
 
     private fun selectedAccounts(): List<Account> = checkBoxes.filterKeys { it.isChecked }.values.toList()
 
-    private fun renderPreview() {
+    // ------------------------------------------------------------ apariencia
+
+    private fun selectedTone(): TextTone =
+        toneButtons.entries.firstOrNull { it.value == toneGroup.checkedButtonId }?.key ?: TextTone.AUTO
+
+    private fun onImagePicked(uri: Uri) {
+        lifecycleScope.launch {
+            // Leer y reducir una foto grande tarda: fuera del hilo principal.
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val light = images.savePending(appWidgetId, uri)
+                    light to images.loadPending(appWidgetId)
+                }
+            }
+            result.onSuccess { (light, bitmap) ->
+                hasImage = bitmap != null
+                imageIsLight = light
+                imageIsPending = true
+                imageBitmap = bitmap
+                updateImageButtons()
+                renderPreview()
+            }.onFailure {
+                Toast.makeText(this@WidgetConfigActivity, "No se pudo usar esa imagen", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun removeImage() {
+        images.discardPending(appWidgetId)
+        hasImage = false
+        imageIsPending = false
+        imageBitmap = null
+        updateImageButtons()
+        renderPreview()
+    }
+
+    private fun updateImageButtons() {
+        findViewById<View>(R.id.remove_image_button).visibility = if (hasImage) View.VISIBLE else View.GONE
+        findViewById<MaterialButton>(R.id.pick_image_button).setText(if (hasImage) R.string.change_image else R.string.pick_image)
+    }
+
+    private fun currentStyle(): WidgetStyle {
         val opacity = opacitySlider.value.toInt()
-        opacityLabel.text = getString(R.string.config_opacity, opacity)
+        return WidgetStyle(
+            opacityPercent = opacity,
+            darkText = TextToneResolver.useDarkText(
+                tone = selectedTone(),
+                opacityPercent = opacity,
+                hasImage = hasImage,
+                imageIsLight = imageIsLight,
+                wallpaperIsLight = { wallpaperIsLight },
+            ),
+            backgroundImage = imageBitmap,
+        )
+    }
+
+    private fun renderPreview() {
+        val style = currentStyle()
+        opacityLabel.text = getString(R.string.config_opacity, style.opacityPercent)
 
         val panels = selectedAccounts().map { Panel(cache.load(it.id) ?: UsageEntry.errorFallback, it.alias, it.id) }
         // Con 2 líneas la vista previa es más ancha, como se verá el widget de 4×2.
@@ -121,7 +237,7 @@ class WidgetConfigActivity : AppCompatActivity() {
             width = (widthDp * resources.displayMetrics.density).toInt()
         }
 
-        val views = WidgetRenderer.build(applicationContext, panels, opacity)
+        val views = WidgetRenderer.build(applicationContext, panels, style)
         preview.removeAllViews()
         // applicationContext, NO la Activity: AppCompat cambiaría ImageView por AppCompatImageView
         // y RemoteViews truena (el bug de la versión 1.0).
@@ -130,7 +246,20 @@ class WidgetConfigActivity : AppCompatActivity() {
 
     private fun save() {
         val accounts = selectedAccounts()
-        configStore.save(appWidgetId, WidgetConfig(accounts.map { it.id }, opacitySlider.value.toInt()))
+        if (hasImage && imageIsPending) images.commitPending(appWidgetId)
+        if (!hasImage) images.delete(appWidgetId)
+
+        configStore.save(
+            appWidgetId,
+            WidgetConfig(
+                accountIds = accounts.map { it.id },
+                opacityPercent = opacitySlider.value.toInt(),
+                textTone = selectedTone(),
+                hasBackgroundImage = hasImage,
+                imageIsLight = imageIsLight,
+            ),
+        )
+        saved = true
         WidgetRenderer.update(applicationContext, AppWidgetManager.getInstance(this), appWidgetId)
         accounts.forEach { RefreshWorker.refreshNow(applicationContext, it.id, RefreshWorker.PERIODIC_MIN_AGE_MS) }
         RefreshWorker.schedulePeriodic(applicationContext)

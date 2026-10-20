@@ -23,9 +23,13 @@ class MiTelcelWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
-        // El usuario quitó widgets: borramos su configuración para no dejar basura.
+        // El usuario quitó widgets: borramos su configuración e imagen de fondo para no dejar basura.
         val configs = WidgetConfigStore(context)
-        appWidgetIds.forEach { configs.delete(it) }
+        val images = BackgroundImageStore(context)
+        appWidgetIds.forEach {
+            configs.delete(it)
+            images.delete(it)
+        }
     }
 
     override fun onDisabled(context: Context) {

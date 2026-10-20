@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Mi Telcel Widget</string>
-    <string name="app_short_name">Mi Telcel</string>
+    <string name="app_name">Mis Datos MX</string>
+    <string name="app_short_name">Mis Datos</string>
     <string name="widget_description">GB disponibles (Plan + Promo), consumo y fecha de corte</string>
     <string name="gauge_description">Medidor de datos consumidos y disponibles</string>
-    <string name="intro">Agrega una o varias líneas de Mi Telcel. Las contraseñas se guardan cifradas en tu teléfono y solo se envían a Telcel.</string>
+    <string name="intro">Agrega una o varias líneas de Telcel o Bait. Las contraseñas se guardan cifradas en tu teléfono y solo se envían a tu compañía.</string>
     <string name="phone_hint">Número a 10 dígitos</string>
     <string name="password_hint">Contraseña de Mi Telcel</string>
     <string name="save_and_refresh">Guardar y actualizar</string>
     <string name="preview_title">Vista previa del widget</string>
     <string name="pin_widget">Agregar widget a la pantalla de inicio</string>
-    <string name="disclaimer">App no oficial. Usa los mismos servicios que la web de Mi Telcel y puede dejar de funcionar si Telcel los cambia.</string>
+    <string name="disclaimer">App no oficial. Usa los mismos servicios que las webs de cada compañía y puede dejar de funcionar si los cambian.</string>
     <string name="my_lines">Mis líneas</string>
     <string name="no_lines_yet">Todavía no agregas ninguna línea.</string>
     <string name="add_line">Agregar línea</string>
@@ -23,6 +23,19 @@
     <string name="config_line">Líneas a mostrar (máximo 2)</string>
     <string name="config_no_accounts">No hay líneas guardadas. Agrega una primero.</string>
     <string name="config_manage_accounts">Administrar líneas</string>
-    <string name="config_opacity">Opacidad del fondo: %1$d%%</string>
+    <string name="config_opacity">Opacidad del fondo (color o imagen): %1$d%%</string>
     <string name="config_save">Guardar</string>
+    <string name="bait_notice">Bait no pide contraseña: basta el número. Ojo: eso significa que cualquiera con tu número puede consultar tu consumo en mibait.com.</string>
+    <string name="update_available">Hay una versión nueva: %1$s</string>
+    <string name="update_now">Actualizar</string>
+    <string name="update_downloading">Descargando %1$s…</string>
+    <string name="update_allow_install">Permite instalar apps de "Mis Datos MX" y vuelve a tocar Actualizar.</string>
+    <string name="config_text_color">Color del texto</string>
+    <string name="tone_auto">Automático</string>
+    <string name="tone_white">Blanco</string>
+    <string name="tone_black">Negro</string>
+    <string name="config_background_image">Imagen de fondo</string>
+    <string name="pick_image">Elegir imagen</string>
+    <string name="change_image">Cambiar imagen</string>
+    <string name="remove_image">Quitar</string>
 </resources>

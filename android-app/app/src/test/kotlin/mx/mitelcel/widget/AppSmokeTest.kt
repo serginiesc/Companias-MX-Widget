@@ -3,7 +3,9 @@ package mx.mitelcel.widget
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.widget.FrameLayout
+import java.io.File
 import androidx.test.core.app.ApplicationProvider
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.data.AccountStore
@@ -12,6 +14,8 @@ import mx.mitelcel.widget.data.WidgetConfig
 import mx.mitelcel.widget.data.WidgetConfigStore
 import mx.mitelcel.widget.widget.Panel
 import mx.mitelcel.widget.widget.WidgetRenderer
+import mx.mitelcel.widget.widget.WidgetStyle
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -55,17 +59,38 @@ class AppSmokeTest {
     }
 
     @Test
-    fun `el widget se dibuja con 0 1 y 2 líneas y distintas opacidades`() {
+    fun `el widget se dibuja con 0 1 y 2 líneas en todos los estilos`() {
         val parent = FrameLayout(context)
         val withData = UsageEntry.errorFallback.copy(totalMB = 15000.0, consumedMB = 9500.0, availableMB = 5500.0, daysLeft = 9)
         val mine = Panel(withData, "Mía", "a")
         val other = Panel(UsageEntry.errorFallback, "Esposa", "b")
-        listOf(0, 60, 100).forEach { opacity ->
-            WidgetRenderer.build(context, emptyList(), opacity).apply(context, parent)
-            WidgetRenderer.build(context, listOf(mine), opacity, appWidgetId = 3).apply(context, parent)
-            WidgetRenderer.build(context, listOf(mine, other), opacity, appWidgetId = 3, statusText = "Actualizando…", statusAccountId = "b")
+        val photo = Bitmap.createBitmap(40, 30, Bitmap.Config.ARGB_8888)
+        val styles = listOf(0, 60, 100).flatMap { opacity ->
+            listOf(
+                WidgetStyle(opacity, darkText = false),
+                WidgetStyle(opacity, darkText = true),
+                WidgetStyle(opacity, darkText = true, backgroundImage = photo),
+            )
+        }
+        styles.forEach { style ->
+            WidgetRenderer.build(context, emptyList(), style).apply(context, parent)
+            WidgetRenderer.build(context, listOf(mine), style, appWidgetId = 3).apply(context, parent)
+            WidgetRenderer.build(context, listOf(mine, other), style, appWidgetId = 3, statusText = "Actualizando…", statusAccountId = "b")
                 .apply(context, parent)
         }
+    }
+
+    /**
+     * widget_panel_dark.xml es una copia obligada de widget_panel.xml (RemoteViews no deja cambiar la
+     * sombra del texto en código). Si alguien edita una y olvida la otra, esta prueba falla.
+     */
+    @Test
+    fun `los dos layouts de panel solo difieren en el estilo del texto`() {
+        fun normalized(name: String) = File("src/main/res/layout/$name").readLines()
+            .filterNot { it.trimStart().startsWith("<!--") || it.trimStart().startsWith("No la edites") }
+            .joinToString("\n")
+            .replace("@style/WidgetTextDark", "@style/WidgetText")
+        assertEquals(normalized("widget_panel.xml"), normalized("widget_panel_dark.xml"))
     }
 
     @Test

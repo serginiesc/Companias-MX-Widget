@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Única carpeta que el FileProvider puede compartir: donde se descargan las actualizaciones. -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

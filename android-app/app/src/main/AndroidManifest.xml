@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Para instalar actualizaciones descargadas de GitHub Releases (Android pide confirmación cada vez). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!--
         allowBackup=false + dataExtractionRules: la contraseña cifrada NO debe viajar en respaldos.
@@ -40,6 +42,17 @@
             android:name=".CrashReportActivity"
             android:exported="false"
             android:theme="@android:style/Theme.DeviceDefault" />
+
+        <!-- Comparte el APK descargado con el instalador de Android (content://, permiso temporal). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_paths" />
+        </provider>
 
         <receiver
             android:name=".widget.MiTelcelWidgetProvider"

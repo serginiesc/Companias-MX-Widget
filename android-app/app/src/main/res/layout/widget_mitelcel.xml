@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Contenedor del widget: fondo + fila donde se agregan los paneles (1 por línea) desde código.
-    El fondo es un ImageView aparte (widget_bg) para poder cambiar su transparencia con setImageAlpha.
+    El fondo es un ImageView aparte (widget_bg, o widget_bg_image si hay foto) para poder cambiar
+    su transparencia con setImageAlpha. clipToOutline recorta la foto con las esquinas redondeadas.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_clip"
+    android:clipToOutline="true">
 
     <ImageView
         android:id="@+id/widget_bg"
@@ -15,6 +18,15 @@
         android:importantForAccessibility="no"
         android:scaleType="fitXY"
         android:src="@drawable/widget_background" />
+
+    <!-- Imagen de fondo elegida por el usuario (oculta si no hay). centerCrop: llena sin deformar. -->
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/widget_panels"

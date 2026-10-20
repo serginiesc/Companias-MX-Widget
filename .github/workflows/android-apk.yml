@@ -92,7 +92,7 @@ jobs:
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
-          name: MiTelcelWidget-apk
+          name: CompaniasMxWidget-apk
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
@@ -134,12 +134,13 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: MiTelcelWidget-apk
+          name: CompaniasMxWidget-apk
 
-      # Nombre fijo: así el enlace .../releases/latest/download/MiTelcelWidget.apk nunca cambia.
-      - run: mv app-debug.apk MiTelcelWidget.apk
+      # Nombre fijo: el botón del README (.../releases/latest/download/CompaniasMxWidget.apk) y la
+      # actualización dentro de la app (UpdateChecker.APK_NAME) dependen de él. No lo cambies sin cambiar ambos.
+      - run: mv app-debug.apk CompaniasMxWidget.apk
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: MiTelcelWidget.apk
+          files: CompaniasMxWidget.apk
           generate_release_notes: true

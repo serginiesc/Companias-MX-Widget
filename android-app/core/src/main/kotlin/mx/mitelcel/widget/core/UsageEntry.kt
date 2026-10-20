@@ -32,12 +32,14 @@ data class UsageEntry(
     val buckets: List<BucketUsage>,
     val updatedAt: String,
     val isCached: Boolean = false,
+    /** Telcel cuenta 1 GB = 1000 MB; Bait y AT&T, 1 GB = 1024 MB. Así cada widget coincide con su app oficial. */
+    val mbPerGb: Int = 1000,
 ) {
     val hasPromo: Boolean get() = buckets.size > 1
 
-    val remainingGB: Double get() = max(0.0, availableMB / 1000.0)
+    val remainingGB: Double get() = max(0.0, availableMB / mbPerGb)
 
-    val totalGB: Double get() = totalMB / 1000.0
+    val totalGB: Double get() = totalMB / mbPerGb
 
     val usageRatio: Double
         get() = if (totalMB > 0) min(1.0, max(0.0, consumedMB / totalMB)) else 0.0
@@ -52,11 +54,11 @@ data class UsageEntry(
     val dailyAllowanceText: String
         get() {
             val dailyMB = max(0.0, availableMB) / max(1, daysLeft)
-            return if (dailyMB >= 1000) fmt("%.2f GB/d", dailyMB / 1000.0) else fmt("%.0f MB/d", dailyMB)
+            return if (dailyMB >= mbPerGb) fmt("%.2f GB/d", dailyMB / mbPerGb) else fmt("%.0f MB/d", dailyMB)
         }
 
     val spentShortText: String
-        get() = if (consumedMB < 1000) fmt("%.0f MB", consumedMB) else fmt("%.2f GB", consumedMB / 1000.0)
+        get() = if (consumedMB < mbPerGb) fmt("%.0f MB", consumedMB) else fmt("%.2f GB", consumedMB / mbPerGb)
 
     val daysLeftText: String get() = "$daysLeft ${if (daysLeft == 1) "día" else "días"}"
 

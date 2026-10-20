@@ -2,6 +2,7 @@ package mx.mitelcel.widget.data
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import mx.mitelcel.widget.core.Carrier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -100,5 +101,41 @@ class AccountStoreTest {
             .putString("account_9", "vieja").putInt("opacity_9", 40).commit()
 
         assertEquals(WidgetConfig(listOf("vieja"), 40), WidgetConfigStore(context).get(9))
+    }
+
+    @Test
+    fun `Bait se guarda sin contraseña`() {
+        val bait = store.save("Bait", "5544444444", password = "", carrier = Carrier.BAIT)
+
+        assertEquals(Carrier.BAIT, store.get(bait.id)?.carrier)
+        assertEquals("", store.password(bait.id)) // "" = no la necesita (distinto de null = se perdió)
+    }
+
+    @Test
+    fun `cambiar de Bait a Telcel exige contraseña`() {
+        val line = store.save("Mía", "5544444444", password = "", carrier = Carrier.BAIT)
+        assertThrows(IllegalArgumentException::class.java) {
+            store.save("Mía", "5544444444", password = "", id = line.id, carrier = Carrier.TELCEL)
+        }
+    }
+
+    @Test
+    fun `las líneas de la versión 1_3 sin compañía se leen como Telcel`() {
+        context.getSharedPreferences("accounts", Context.MODE_PRIVATE).edit()
+            .putString("list", """[{"id":"x1","alias":"Vieja","phone":"5555555555","passwordEnc":"enc:p"}]""")
+            .commit()
+
+        val account = AccountStore(context, FakeSecretBox()).list().single()
+        assertEquals(Carrier.TELCEL, account.carrier)
+    }
+
+    @Test
+    fun `guarda color de texto e imagen de fondo del widget`() {
+        val configs = WidgetConfigStore(context)
+        val config = WidgetConfig(listOf("a"), 30, TextTone.BLACK, hasBackgroundImage = true, imageIsLight = true)
+
+        configs.save(5, config)
+
+        assertEquals(config, configs.get(5))
     }
 }

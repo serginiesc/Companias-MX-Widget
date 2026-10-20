@@ -24,6 +24,37 @@
             android:text="@string/intro"
             android:textAppearance="?attr/textAppearanceBodyMedium" />
 
+        <!-- Aviso de versión nueva (GitHub Releases). Oculto hasta que UpdateManager encuentra una. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/update_card"
+            style="@style/Widget.Material3.CardView.Filled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/update_text"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/update_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/update_now" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Lista de líneas guardadas (se llena desde código). -->
         <TextView
             android:layout_width="wrap_content"
@@ -54,6 +85,42 @@
             android:layout_marginTop="24dp"
             android:text="@string/add_line"
             android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <!-- Compañía: un botón por cada valor de Carrier (MainActivity.carrierButtons). -->
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/carrier_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:checkedButton="@id/carrier_telcel"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/carrier_telcel"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Telcel" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/carrier_bait"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Bait" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <TextView
+            android:id="@+id/bait_notice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/bait_notice"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:visibility="gone" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/alias_layout"

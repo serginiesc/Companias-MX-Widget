@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MiTelcelWidget"
+rootProject.name = "MisDatosMX"
 
 // :core = lógica pura (red + parser), sin dependencias de Android -> se prueba con JUnit en la JVM.
 // :app  = todo lo que depende de Android (widget, Keystore, WorkManager, pantalla de configuración).

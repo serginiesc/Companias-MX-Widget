@@ -12,8 +12,8 @@ android {
         applicationId = "mx.mitelcel.widget"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     buildTypes {
@@ -31,6 +31,10 @@ android {
         jvmTarget = "17"
     }
 
+    buildFeatures {
+        buildConfig = true // BuildConfig.VERSION_NAME: lo usa UpdateManager para comparar versiones
+    }
+
     testOptions {
         // Robolectric necesita los recursos (layouts, temas) para inflar pantallas en la JVM.
         unitTests.isIncludeAndroidResources = true
@@ -42,6 +46,7 @@ dependencies {
 
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.activity:activity-ktx:1.9.3") // Photo Picker (PickVisualMedia)
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.work:work-runtime-ktx:2.9.1")

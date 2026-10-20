@@ -9,4 +9,10 @@
         <item name="android:shadowDy">1.5</item>
         <item name="android:shadowRadius">4</item>
     </style>
+
+    <!-- Texto oscuro (fondos claros): sin sombra, una sombra oscura se vería sucia. -->
+    <style name="WidgetTextDark">
+        <item name="android:shadowColor">#00000000</item>
+        <item name="android:shadowRadius">0</item>
+    </style>
 </resources>

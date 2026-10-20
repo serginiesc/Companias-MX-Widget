@@ -35,7 +35,7 @@ object WidgetRenderer {
     fun build(
         context: Context,
         panels: List<Panel>,
-        opacityPercent: Int,
+        style: WidgetStyle = WidgetStyle(),
         appWidgetId: Int? = null,
         statusText: String? = null,
         statusAccountId: String? = null,
@@ -43,22 +43,39 @@ object WidgetRenderer {
         val root = RemoteViews(context.packageName, R.layout.widget_mitelcel)
         // RemoteViews no permite cambiar la transparencia de un "background", pero sí la de una
         // imagen: por eso el fondo es un ImageView y usamos setImageAlpha (0-255).
-        root.setInt(R.id.widget_bg, "setImageAlpha", opacityPercent.coerceIn(0, 100) * 255 / 100)
+        val alpha = style.opacityPercent.coerceIn(0, 100) * 255 / 100
+        val image = style.backgroundImage
+        if (image != null) {
+            root.setImageViewBitmap(R.id.widget_bg_image, image)
+            root.setInt(R.id.widget_bg_image, "setImageAlpha", alpha)
+            root.setViewVisibility(R.id.widget_bg_image, View.VISIBLE)
+            root.setViewVisibility(R.id.widget_bg, View.GONE)
+        } else {
+            root.setInt(R.id.widget_bg, "setImageAlpha", alpha)
+        }
 
         root.removeAllViews(R.id.widget_panels)
-        panels.ifEmpty { listOf(Panel(UsageEntry.errorFallback, "Mi Telcel")) }
+        panels.ifEmpty { listOf(Panel(UsageEntry.errorFallback, context.getString(R.string.app_short_name))) }
             .forEachIndexed { index, panel ->
                 val showStatus = statusText != null && (statusAccountId == null || statusAccountId == panel.accountId)
                 root.addView(
                     R.id.widget_panels,
-                    buildPanel(context, panel, appWidgetId, index, if (showStatus) statusText else null),
+                    buildPanel(context, panel, style.palette, appWidgetId, index, if (showStatus) statusText else null),
                 )
             }
         return root
     }
 
-    private fun buildPanel(context: Context, panel: Panel, appWidgetId: Int?, index: Int, statusText: String?): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_panel)
+    private fun buildPanel(
+        context: Context,
+        panel: Panel,
+        palette: WidgetPalette,
+        appWidgetId: Int?,
+        index: Int,
+        statusText: String?,
+    ): RemoteViews {
+        // El layout cambia solo por la sombra del texto (RemoteViews no deja cambiarla en código).
+        val views = RemoteViews(context.packageName, palette.panelLayout)
         val entry = panel.entry
         val hasData = entry.totalMB > 0
 
@@ -69,9 +86,15 @@ object WidgetRenderer {
         )
         views.setViewVisibility(R.id.widget_days, if (hasData) View.VISIBLE else View.GONE)
         views.setTextViewText(R.id.widget_days, entry.daysLeftText)
-        views.setTextColor(R.id.widget_days, WidgetColors.forDaysLeft(entry.daysLeft))
+        views.setTextColor(R.id.widget_days, palette.forDaysLeft(entry.daysLeft))
+        views.setInt(R.id.widget_days, "setBackgroundResource", palette.pillBackground)
+        views.setTextColor(R.id.widget_title, palette.primary)
+        views.setTextColor(R.id.widget_cutoff, palette.secondary)
+        views.setTextColor(R.id.widget_spent, palette.spent)
+        views.setTextColor(R.id.widget_daily, palette.available)
+        views.setTextColor(R.id.widget_footer, palette.secondary)
 
-        views.setImageViewBitmap(R.id.widget_gauge, GaugeRenderer.render(entry))
+        views.setImageViewBitmap(R.id.widget_gauge, GaugeRenderer.render(entry, palette))
         views.setTextViewText(R.id.widget_spent, "● ${entry.spentShortText} (${entry.percentUsed}%)")
         views.setTextViewText(R.id.widget_daily, "● ${entry.dailyAllowanceText}")
         views.setTextViewText(R.id.widget_footer, statusText ?: entry.footerText)
@@ -99,7 +122,7 @@ object WidgetRenderer {
         }
         manager.updateAppWidget(
             appWidgetId,
-            build(context, panels, config.opacityPercent, appWidgetId, statusText, statusAccountId),
+            build(context, panels, WidgetStyle.forWidget(context, appWidgetId, config), appWidgetId, statusText, statusAccountId),
         )
     }
 

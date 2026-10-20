@@ -33,10 +33,10 @@ data class TelcelEndpoints(
 class TelcelClient(
     private val endpoints: TelcelEndpoints = TelcelEndpoints(),
     private val baseHttp: OkHttpClient = DEFAULT_HTTP,
-) {
-    fun fetchUsage(rawPhone: String, password: String): UsageEntry {
+) : UsageProvider {
+    override fun fetchUsage(rawPhone: String, password: String?): UsageEntry {
         val phone = normalizePhone(rawPhone)
-        if (phone.length != 10 || password.isEmpty()) {
+        if (phone.length != 10 || password.isNullOrEmpty()) {
             throw TelcelException("Configura un número a 10 dígitos y tu contraseña")
         }
 
@@ -174,7 +174,7 @@ class TelcelClient(
         private val FORM_UTF8 = "application/x-www-form-urlencoded; charset=UTF-8".toMediaType()
         private val FORM = "application/x-www-form-urlencoded".toMediaType()
 
-        private val DEFAULT_HTTP: OkHttpClient = OkHttpClient.Builder()
+        internal val DEFAULT_HTTP: OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
