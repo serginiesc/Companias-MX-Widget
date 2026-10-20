@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config
  * Si algo truena al iniciar (tema, layout, recurso faltante), falla aquí y no en tu celular.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34, 35])
 class AppSmokeTest {
 
     @Test
