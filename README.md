@@ -73,6 +73,12 @@ Para usuarios con Mac y Xcode que deseen compilar la app y extensión nativa:
 
 ---
 
+## Método Android nativo (APK)
+
+App Kotlin con widget nativo. GitHub Actions compila el APK automáticamente. Instrucciones en [`android-app/README.md`](android-app/README.md).
+
+---
+
 ## Método 3: Prototipo para Android (Termux:Widget / KWGT)
 
 > [!WARNING]

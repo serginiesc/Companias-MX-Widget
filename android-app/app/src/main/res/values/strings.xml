@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mi Telcel Widget</string>
+    <string name="app_short_name">Mi Telcel</string>
+    <string name="widget_description">GB disponibles (Plan + Promo), consumo y fecha de corte</string>
+    <string name="gauge_description">Medidor de datos consumidos y disponibles</string>
+    <string name="intro">Ingresa tu número y contraseña de Mi Telcel. La contraseña se guarda cifrada en tu teléfono y solo se envía a Telcel.</string>
+    <string name="phone_hint">Número a 10 dígitos</string>
+    <string name="password_hint">Contraseña de Mi Telcel</string>
+    <string name="save_and_refresh">Guardar y actualizar</string>
+    <string name="preview_title">Vista previa del widget</string>
+    <string name="pin_widget">Agregar widget a la pantalla de inicio</string>
+    <string name="clear_credentials">Borrar mis datos</string>
+    <string name="disclaimer">App no oficial. Usa los mismos servicios que la web de Mi Telcel y puede dejar de funcionar si Telcel los cambia.</string>
+</resources>

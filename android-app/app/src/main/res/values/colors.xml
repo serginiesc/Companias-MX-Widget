@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="white">#FFFFFFFF</color>
+    <color name="widget_bg">#FF121212</color>
+    <color name="pill_bg">#FF242429</color>
+    <color name="subtitle_gray">#FF99999E</color>
+    <color name="brand_green">#FF33D64A</color>
+    <color name="spent_red">#FFFF453B</color>
+    <color name="icon_bg">#FF0B2A5B</color>
+</resources>
