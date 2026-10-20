@@ -8,8 +8,8 @@ Widget nativo de Android (Kotlin) que muestra en la pantalla de inicio los **GB 
 ## 📲 Descargar
 
 <p align="center">
-  <a href="https://github.com/serginiesc/companias-mx-widget/releases/latest/download/CompaniasMxWidget.apk">
-    <img src="https://img.shields.io/github/v/release/serginiesc/companias-mx-widget?label=Descargar%20APK&style=for-the-badge&logo=android&color=33D64A" alt="Descargar APK">
+  <a href="https://github.com/serginiesc/Companias-MX-Widget/releases/latest/download/CompaniasMxWidget.apk">
+    <img src="https://img.shields.io/github/v/release/serginiesc/Companias-MX-Widget?label=Descargar%20APK&style=for-the-badge&logo=android&color=33D64A" alt="Descargar APK">
   </a>
 </p>
 

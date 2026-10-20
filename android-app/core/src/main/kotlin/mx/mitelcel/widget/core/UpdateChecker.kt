@@ -48,7 +48,7 @@ class UpdateChecker(
     }
 
     companion object {
-        const val REPO = "serginiesc/companias-mx-widget"
+        const val REPO = "serginiesc/Companias-MX-Widget"
         const val APK_NAME = "CompaniasMxWidget.apk"
 
         /** Lee la respuesta de /releases/latest. null si no trae el APK esperado. */
