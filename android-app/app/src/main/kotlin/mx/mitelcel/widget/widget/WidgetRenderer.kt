@@ -45,16 +45,17 @@ object WidgetRenderer {
         val root = RemoteViews(context.packageName, R.layout.widget_mitelcel)
         // RemoteViews no permite cambiar la transparencia de un "background", pero sí la de una
         // imagen: por eso el fondo es un ImageView y usamos setImageAlpha (0-255).
+        //
+        // OJO: el launcher puede REAPLICAR estas acciones sobre las vistas que ya tenía (no siempre
+        // infla de cero). Por eso se declara SIEMPRE el estado completo de las dos capas: si solo se
+        // dijera "lo que cambió", al quitar la imagen el fondo oscuro se quedaría oculto (bug de la 1.5-beta).
         val alpha = style.opacityPercent.coerceIn(0, 100) * 255 / 100
         val image = style.backgroundImage
-        if (image != null) {
-            root.setImageViewBitmap(R.id.widget_bg_image, image)
-            root.setInt(R.id.widget_bg_image, "setImageAlpha", alpha)
-            root.setViewVisibility(R.id.widget_bg_image, View.VISIBLE)
-            root.setViewVisibility(R.id.widget_bg, View.GONE)
-        } else {
-            root.setInt(R.id.widget_bg, "setImageAlpha", alpha)
-        }
+        if (image != null) root.setImageViewBitmap(R.id.widget_bg_image, image)
+        root.setViewVisibility(R.id.widget_bg_image, if (image != null) View.VISIBLE else View.GONE)
+        root.setViewVisibility(R.id.widget_bg, if (image != null) View.GONE else View.VISIBLE)
+        root.setInt(R.id.widget_bg_image, "setImageAlpha", alpha)
+        root.setInt(R.id.widget_bg, "setImageAlpha", alpha)
 
         // RemoteViews no deja cambiar la orientación de un LinearLayout: hay dos filas y se muestra una.
         val row = if (style.layoutStyle == LayoutStyle.BAR) R.id.widget_panels_stacked else R.id.widget_panels
