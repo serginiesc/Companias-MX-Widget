@@ -23,6 +23,12 @@ object BarRenderer {
 
         paint.color = palette.track
         canvas.drawRoundRect(RectF(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat()), RADIUS, RADIUS, paint)
+        if (entry.unlimited) {
+            // Ilimitado: barra completa "disponible".
+            paint.color = palette.available
+            canvas.drawRoundRect(RectF(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat()), RADIUS, RADIUS, paint)
+            return bitmap
+        }
         if (entry.totalMB <= 0) return bitmap // sin datos: solo la pista vacía
 
         val split = WIDTH * entry.usageRatio.toFloat()

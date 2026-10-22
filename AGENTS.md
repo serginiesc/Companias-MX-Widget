@@ -27,7 +27,9 @@
 - Cada `PendingIntent` del widget lleva un `requestCode` único por widget y por panel.
 - En `RemoteViews`, declara SIEMPRE el estado completo (visibilidad, alfa, textos) de cada vista que pueda cambiar: el launcher reaplica las acciones sobre las vistas que ya tenía, y lo no declarado se queda como estaba.
 - Los layouts `*_dark.xml` son copias de su original (solo cambia el estilo del texto): edita ambos; `AppSmokeTest` lo verifica.
-- Errores de red (`IOException`) se reintentan; errores de login o de la compañía NUNCA (podría bloquear la cuenta).
+- Errores de red (`IOException`) se reintentan; errores de login o de la compañía NUNCA (podría bloquear la cuenta). `SessionExpiredException` (Movistar) tampoco: el usuario debe volver a iniciar sesión.
+- Las llaves PÚBLICAS de cada compañía (Basic de Telcel, x-ord-service de Bait, guardString de Movistar) se leen del sitio SOLO cuando la conocida falla, se reintenta UNA vez y se guardan en `KeyCache`. Nunca en bucle.
+- El token de Movistar (`p_id`) es un secreto del usuario: va cifrado en `AccountStore` y jamás se escribe en logs.
 - El estilo lo revisa ktlint en CI (reglas en `android-app/.editorconfig`).
 - No cambies `applicationId` (`mx.mitelcel.widget`): Android lo trataría como otra app y nadie podría actualizar.
 - El nombre del APK del Release (`CompaniasMxWidget.apk`) debe coincidir con `UpdateChecker.APK_NAME` y el botón del README.

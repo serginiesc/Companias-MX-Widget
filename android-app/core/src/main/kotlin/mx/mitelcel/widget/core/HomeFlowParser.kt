@@ -11,7 +11,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
 
-class TelcelException(message: String, cause: Throwable? = null) : Exception(message, cause)
+/** Error de la compañía (respuesta inesperada, contraseña incorrecta…). `open` para sesiones caducadas. */
+open class TelcelException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /**
  * Convierte la respuesta de `api/components/flow/home` (Wave B2F) en un [UsageEntry].

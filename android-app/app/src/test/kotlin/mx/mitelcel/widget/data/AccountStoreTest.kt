@@ -112,6 +112,16 @@ class AccountStoreTest {
     }
 
     @Test
+    fun `Movistar guarda el token de sesión cifrado como si fuera contraseña`() {
+        val line = store.save("Movistar", "5566666666", password = "token-p-id", carrier = Carrier.MOVISTAR)
+
+        assertEquals("token-p-id", store.password(line.id))
+        // Editar sin volver a iniciar sesión conserva el token.
+        store.save("Mi Movistar", "5566666666", password = "", id = line.id, carrier = Carrier.MOVISTAR)
+        assertEquals("token-p-id", store.password(line.id))
+    }
+
+    @Test
     fun `cambiar de Bait a Telcel exige contraseña`() {
         val line = store.save("Mía", "5544444444", password = "", carrier = Carrier.BAIT)
         assertThrows(IllegalArgumentException::class.java) {

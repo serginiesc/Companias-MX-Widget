@@ -95,7 +95,7 @@ object WidgetRenderer {
         // El layout depende del diseño y de la sombra del texto (RemoteViews no deja cambiarla en código).
         val views = RemoteViews(context.packageName, style.panelLayout)
         val entry = panel.entry
-        val hasData = entry.totalMB > 0
+        val hasData = entry.hasPlan
 
         views.setTextViewText(R.id.widget_title, panel.title)
         views.setTextViewText(
@@ -119,13 +119,13 @@ object WidgetRenderer {
                 // (Llamar setTextViewText con un id que no existe en el layout truena al aplicarse.)
                 views.setImageViewBitmap(R.id.widget_gauge, BarRenderer.render(entry, palette))
                 views.setTextViewText(R.id.widget_amount, entry.remainingText)
-                views.setTextViewText(R.id.widget_total, "libres de ${entry.totalText}")
+                views.setTextViewText(R.id.widget_total, entry.subtitleText)
                 views.setTextColor(R.id.widget_amount, palette.primary)
                 views.setTextColor(R.id.widget_total, palette.secondary)
             }
         }
-        views.setTextViewText(R.id.widget_spent, "● ${entry.spentShortText} (${entry.percentUsed}%)")
-        views.setTextViewText(R.id.widget_daily, "● ${entry.dailyAllowanceText}")
+        views.setTextViewText(R.id.widget_spent, entry.spentLine)
+        views.setTextViewText(R.id.widget_daily, entry.dailyLine)
         views.setTextViewText(R.id.widget_footer, statusText ?: StatusLine.of(entry, panel.forecast, now, ZoneId.systemDefault()))
         // Dato viejo: el medidor/barra se atenúa para que no se lea como si fuera actual.
         views.setInt(R.id.widget_gauge, "setImageAlpha", if (stale) 110 else 255)

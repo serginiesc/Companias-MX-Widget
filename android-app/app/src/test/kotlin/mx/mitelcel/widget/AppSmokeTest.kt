@@ -104,6 +104,21 @@ class AppSmokeTest {
     }
 
     @Test
+    fun `el login de Movistar abre sin cerrarse`() {
+        Robolectric.buildActivity(MovistarLoginActivity::class.java).setup()
+    }
+
+    @Test
+    fun `un plan ilimitado se dibuja en los dos diseños`() {
+        val parent = FrameLayout(context)
+        val unlimited = UsageEntry.errorFallback.copy(timestampMillis = System.currentTimeMillis(), unlimited = true, daysLeft = 7)
+        LayoutStyle.entries.forEach { layout ->
+            WidgetRenderer.build(context, listOf(Panel(unlimited, "Movistar")), WidgetStyle(layoutStyle = layout), appWidgetId = 4)
+                .apply(context, parent)
+        }
+    }
+
+    @Test
     fun `la pantalla de error abre sin cerrarse`() {
         Robolectric.buildActivity(CrashReportActivity::class.java).setup()
     }

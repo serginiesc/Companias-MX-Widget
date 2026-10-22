@@ -3,6 +3,8 @@ package mx.mitelcel.widget.data
 import android.content.Context
 import mx.mitelcel.widget.core.BaitClient
 import mx.mitelcel.widget.core.Carrier
+import mx.mitelcel.widget.core.KeyCache
+import mx.mitelcel.widget.core.MovistarClient
 import mx.mitelcel.widget.core.TelcelClient
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.core.UsageProvider
@@ -21,7 +23,8 @@ data class RefreshResult(val entry: UsageEntry, val error: String? = null, val r
 class UsageRepository(
     context: Context,
     /** Qué cliente usar para cada compañía. Inyectable para pruebas. */
-    private val providers: (Carrier) -> UsageProvider = { defaultProvider(it) },
+    private val providers: (Carrier) -> UsageProvider =
+        PrefsKeyCache(context).let { keys -> { carrier: Carrier -> defaultProvider(carrier, keys) } },
     val accounts: AccountStore = AccountStore(context),
     private val cache: UsageCache = UsageCache(context),
     val history: UsageHistoryStore = UsageHistoryStore(context),
@@ -67,9 +70,10 @@ class UsageRepository(
         val LOCK = Any()
 
         // Un `when` exhaustivo: si se agrega una compañía al enum y se olvida aquí, NO compila.
-        fun defaultProvider(carrier: Carrier): UsageProvider = when (carrier) {
-            Carrier.TELCEL -> TelcelClient()
-            Carrier.BAIT -> BaitClient()
+        fun defaultProvider(carrier: Carrier, keys: KeyCache): UsageProvider = when (carrier) {
+            Carrier.TELCEL -> TelcelClient(keys = keys)
+            Carrier.BAIT -> BaitClient(keys = keys)
+            Carrier.MOVISTAR -> MovistarClient(keys = keys)
         }
     }
 }

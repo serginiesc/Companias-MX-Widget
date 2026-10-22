@@ -38,7 +38,11 @@ object GaugeRenderer {
         arcPaint.color = palette.track
         canvas.drawArc(arcBounds, 180f, 180f, false, arcPaint)
 
-        if (entry.totalMB > 0) {
+        if (entry.unlimited) {
+            // Ilimitado: todo el arco "disponible".
+            arcPaint.color = palette.available
+            canvas.drawArc(arcBounds, 180f, 180f, false, arcPaint)
+        } else if (entry.totalMB > 0) {
             val ratio = entry.usageRatio.toFloat()
             // Pequeño hueco entre rojo y verde, salvo en los extremos (se vería raro).
             val gap = if (ratio > 0.04f && ratio < 0.96f) 0.06f else 0f
@@ -70,7 +74,7 @@ object GaugeRenderer {
             textSize = 22f
             typeface = Typeface.DEFAULT
         }
-        canvas.drawText("libres de ${entry.totalText}", cx, cy + 22f, textPaint)
+        canvas.drawText(entry.subtitleText, cx, cy + 22f, textPaint)
 
         return bitmap
     }

@@ -28,7 +28,12 @@ data class UsageEntry(
     val isCached: Boolean = false,
     /** Telcel cuenta 1 GB = 1000 MB; Bait y AT&T, 1 GB = 1024 MB. Así cada widget coincide con su app oficial. */
     val mbPerGb: Int = 1000,
+    /** Plan de datos sin límite (ej. Movistar Ilimitado): no hay total, así que no hay medidor que llenar. */
+    val unlimited: Boolean = false,
 ) {
+    /** Hay algo que mostrar: un plan con total o uno ilimitado. */
+    val hasPlan: Boolean get() = totalMB > 0 || unlimited
+
     val hasPromo: Boolean get() = buckets.size > 1
 
     val remainingGB: Double get() = max(0.0, availableMB / mbPerGb)
@@ -36,10 +41,19 @@ data class UsageEntry(
     val totalGB: Double get() = totalMB / mbPerGb
 
     /** "5.47 GB": lo mismo en el medidor y en la barra (un solo lugar para el formato). */
-    val remainingText: String get() = fmt("%.2f GB", remainingGB)
+    val remainingText: String get() = if (unlimited) "Ilimitado" else fmt("%.2f GB", remainingGB)
 
     /** "15.0 GB" */
     val totalText: String get() = fmt("%.1f GB", totalGB)
+
+    /** Bajo la cantidad: "libres de 15.0 GB", o "datos sin límite" en un plan ilimitado. */
+    val subtitleText: String get() = if (unlimited) "datos sin límite" else "libres de $totalText"
+
+    /** Línea roja: "● 9.50 GB (63%)". En un plan ilimitado no hay porcentaje que mostrar. */
+    val spentLine: String get() = if (unlimited) "● Ilimitado" else "● $spentShortText ($percentUsed%)"
+
+    /** Línea verde: "● 608 MB/d" (lo que puedes gastar por día para llegar al corte). */
+    val dailyLine: String get() = if (unlimited) "● Sin límite" else "● $dailyAllowanceText"
 
     val usageRatio: Double
         get() = if (totalMB > 0) min(1.0, max(0.0, consumedMB / totalMB)) else 0.0

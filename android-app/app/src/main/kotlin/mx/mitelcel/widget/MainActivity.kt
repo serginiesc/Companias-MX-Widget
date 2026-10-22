@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mx.mitelcel.widget.core.Carrier
+import mx.mitelcel.widget.core.CredentialKind
 import mx.mitelcel.widget.core.DailyUsage
 import mx.mitelcel.widget.core.ReleaseInfo
 import mx.mitelcel.widget.core.TelcelClient
@@ -65,7 +66,19 @@ class MainActivity : AppCompatActivity() {
     private val carrierButtons = mapOf(
         Carrier.TELCEL to R.id.carrier_telcel,
         Carrier.BAIT to R.id.carrier_bait,
+        Carrier.MOVISTAR to R.id.carrier_movistar,
     )
+
+    /** Token de Movistar recién capturado en MovistarLoginActivity (aún sin guardar). Nunca se muestra. */
+    private var capturedToken: String? = null
+
+    private val movistarLogin = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val token = result.data?.getStringExtra(MovistarLoginActivity.EXTRA_TOKEN)
+        if (result.resultCode == RESULT_OK && !token.isNullOrBlank()) {
+            capturedToken = token
+            findViewById<TextView>(R.id.movistar_session_text).setText(R.string.movistar_session_ready)
+        }
+    }
 
     /** Android 13+: permiso de notificaciones. Si lo niega, la app funciona igual, solo sin avisos. */
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -103,6 +116,9 @@ class MainActivity : AppCompatActivity() {
         updateManager = UpdateManager(applicationContext)
 
         carrierGroup.addOnButtonCheckedListener { _, _, isChecked -> if (isChecked) onCarrierChanged() }
+        findViewById<MaterialButton>(R.id.movistar_login_button).setOnClickListener {
+            movistarLogin.launch(Intent(this, MovistarLoginActivity::class.java))
+        }
         saveButton.setOnClickListener { onSaveClicked() }
         cancelEditButton.setOnClickListener { resetForm() }
         setupPinButton(findViewById(R.id.pin_button))
@@ -125,10 +141,14 @@ class MainActivity : AppCompatActivity() {
         carrierButtons.entries.firstOrNull { it.value == carrierGroup.checkedButtonId }?.key ?: Carrier.TELCEL
 
     /** Bait no usa contraseña: ocultamos el campo para no pedir algo que no se necesita. */
+    /** Cada compañía pide algo distinto: contraseña (Telcel), nada (Bait) o iniciar sesión web (Movistar). */
     private fun onCarrierChanged() {
-        val carrier = selectedCarrier()
-        passwordLayout.visibility = if (carrier.needsPassword) View.VISIBLE else View.GONE
-        baitNotice.visibility = if (carrier == Carrier.BAIT) View.VISIBLE else View.GONE
+        val credential = selectedCarrier().credential
+        passwordLayout.visibility = if (credential == CredentialKind.PASSWORD) View.VISIBLE else View.GONE
+        baitNotice.visibility = if (credential == CredentialKind.NONE) View.VISIBLE else View.GONE
+        val web = if (credential == CredentialKind.WEB_SESSION) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.movistar_login_button).visibility = web
+        findViewById<View>(R.id.movistar_session_text).visibility = web
         passwordLayout.error = null
     }
 
@@ -209,6 +229,8 @@ class MainActivity : AppCompatActivity() {
         carrierGroup.check(carrierButtons.getValue(account.carrier))
         passwordInput.setText("")
         passwordLayout.helperText = getString(R.string.keep_password_hint)
+        capturedToken = null
+        findViewById<TextView>(R.id.movistar_session_text).setText(R.string.movistar_session_saved)
         cancelEditButton.visibility = View.VISIBLE
         showPreview(account)
     }
@@ -223,6 +245,8 @@ class MainActivity : AppCompatActivity() {
         passwordLayout.error = null
         passwordLayout.helperText = null
         cancelEditButton.visibility = View.GONE
+        capturedToken = null
+        findViewById<TextView>(R.id.movistar_session_text).text = ""
         carrierGroup.check(R.id.carrier_telcel)
     }
 
@@ -230,16 +254,24 @@ class MainActivity : AppCompatActivity() {
         val editing = editingAccount
         val carrier = selectedCarrier()
         val phone = TelcelClient.normalizePhone(phoneInput.text?.toString().orEmpty())
-        val password = passwordInput.text?.toString().orEmpty()
+        // El "secreto" que se guarda cifrado depende de la compañía.
+        val password = when (carrier.credential) {
+            CredentialKind.PASSWORD -> passwordInput.text?.toString().orEmpty()
+            CredentialKind.WEB_SESSION -> capturedToken.orEmpty()
+            CredentialKind.NONE -> ""
+        }
         val alias = aliasInput.text?.toString()?.trim().orEmpty()
             .ifEmpty { "Línea ${repository.accounts.list().size + if (editing == null) 1 else 0}" }
 
         phoneLayout.error = if (phone.length != 10) "Debe tener 10 dígitos" else null
         // Se puede dejar vacía solo al editar una línea de la MISMA compañía (se conserva la guardada).
         val canKeepPassword = editing != null && editing.carrier == carrier
-        passwordLayout.error =
-            if (carrier.needsPassword && password.isEmpty() && !canKeepPassword) "Escribe la contraseña" else null
-        if (phoneLayout.error != null || passwordLayout.error != null) return
+        val missingSecret = carrier.needsPassword && password.isEmpty() && !canKeepPassword
+        passwordLayout.error = if (missingSecret && carrier.credential == CredentialKind.PASSWORD) "Escribe la contraseña" else null
+        if (missingSecret && carrier.credential == CredentialKind.WEB_SESSION) {
+            findViewById<TextView>(R.id.movistar_session_text).setText(R.string.movistar_session_needed)
+        }
+        if (phoneLayout.error != null || missingSecret) return
 
         setBusy(true)
         lifecycleScope.launch {

@@ -19,13 +19,28 @@ import java.time.temporal.ChronoUnit
  * Mi Bait (red Altán, plataforma Ordenaris). Una sola consulta GET por número: no hay login.
  * Port de `src/MiBaitWidget.js` de amaynez/telcel-widget-agy.
  */
-class BaitClient(private val baseUrl: String = "https://mibait.com", private val http: OkHttpClient = TelcelClient.DEFAULT_HTTP) :
-    UsageProvider {
+class BaitClient(
+    private val baseUrl: String = "https://mibait.com",
+    private val http: OkHttpClient = TelcelClient.DEFAULT_HTTP,
+    private val keys: KeyCache = InMemoryKeyCache(),
+) : UsageProvider {
 
     override fun fetchUsage(rawPhone: String, password: String?): UsageEntry {
         val phone = TelcelClient.normalizePhone(rawPhone)
         if (phone.length != 10) throw TelcelException("Configura un número Bait a 10 dígitos")
 
+        val known = keys.get(SERVICE_KEY) ?: ORD_SERVICE_KEY
+        return try {
+            query(phone, known)
+        } catch (e: TelcelException) {
+            // ¿Bait rotó su llave? Se lee la actual de su JavaScript y se reintenta UNA vez.
+            val fresh = runCatching { fetchServiceKey() }.getOrNull()
+            if (fresh == null || fresh == known) throw e
+            query(phone, fresh).also { keys.put(SERVICE_KEY, fresh) }
+        }
+    }
+
+    private fun query(phone: String, serviceKey: String): UsageEntry {
         // addPathSegment codifica el número; armar la URL concatenando texto es un error común.
         val url = baseUrl.toHttpUrl().newBuilder()
             .addPathSegments("api/core/q/dn")
@@ -35,7 +50,7 @@ class BaitClient(private val baseUrl: String = "https://mibait.com", private val
         val request = Request.Builder()
             .url(url)
             .header("Accept", "application/json")
-            .header("x-ord-service", ORD_SERVICE_KEY)
+            .header("x-ord-service", serviceKey)
             .build()
 
         http.newCall(request).execute().use { resp ->
@@ -45,9 +60,23 @@ class BaitClient(private val baseUrl: String = "https://mibait.com", private val
         }
     }
 
-    private companion object {
+    /** mibait.com -> main.<hash>.js -> xOrdService:"<32 hex>" */
+    private fun fetchServiceKey(): String? {
+        val html = getText(baseUrl) ?: return null
+        val script = Regex("""src="(main\.[a-f0-9]+\.js)"""").find(html)?.groupValues?.get(1) ?: return null
+        val js = getText("${baseUrl.trimEnd('/')}/$script") ?: return null
+        return Regex("""xOrdService:"([a-f0-9]{32})"""").find(js)?.groupValues?.get(1)
+    }
+
+    private fun getText(url: String): String? = http.newCall(Request.Builder().url(url).build()).execute().use {
+        if (it.isSuccessful) it.body?.string() else null
+    }
+
+    companion object {
+        const val SERVICE_KEY = "bait_service_key"
+
         /** Llave pública del sitio mibait.com (viene en su JavaScript); no es tuya ni da acceso a tu cuenta. */
-        const val ORD_SERVICE_KEY = "57bfb26735aa4ec3a1baafa864006d7d"
+        private const val ORD_SERVICE_KEY = "57bfb26735aa4ec3a1baafa864006d7d"
     }
 }
 

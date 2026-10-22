@@ -22,6 +22,8 @@ data class TelcelEndpoints(
     val token: String = "https://mi-telcel.smapps.mx/security/1.0.0/v2/token",
     val home: String = "https://api.journeys.telcel.wavebybemobi.com/api/components/flow/home",
     val revoke: String = "https://dev.smapps.mx:9000/sso/revoke",
+    /** Portal web: de su JavaScript se lee la llave Basic vigente si Telcel la rota. */
+    val portal: String = "https://www.mitelcel.com",
 )
 
 /**
@@ -30,8 +32,11 @@ data class TelcelEndpoints(
  * IMPORTANTE: [fetchUsage] es bloqueante (hace red). Llámalo solo desde un hilo de fondo
  * (Worker o Dispatchers.IO); en el hilo principal Android lanza NetworkOnMainThreadException.
  */
-class TelcelClient(private val endpoints: TelcelEndpoints = TelcelEndpoints(), private val baseHttp: OkHttpClient = DEFAULT_HTTP) :
-    UsageProvider {
+class TelcelClient(
+    private val endpoints: TelcelEndpoints = TelcelEndpoints(),
+    private val baseHttp: OkHttpClient = DEFAULT_HTTP,
+    private val keys: KeyCache = InMemoryKeyCache(),
+) : UsageProvider {
     override fun fetchUsage(rawPhone: String, password: String?): UsageEntry {
         val phone = normalizePhone(rawPhone)
         if (phone.length != 10 || password.isNullOrEmpty()) {
@@ -42,7 +47,7 @@ class TelcelClient(private val endpoints: TelcelEndpoints = TelcelEndpoints(), p
         val http = baseHttp.newBuilder().cookieJar(InMemoryCookieJar()).build()
         val ssoToken = login(http, phone, password)
         try {
-            val b2fToken = exchangeToken(http, phone, ssoToken)
+            val b2fToken = exchangeTokenWithFreshKey(http, phone, ssoToken)
             return HomeFlowParser.parse(fetchHome(http, phone, b2fToken))
         } finally {
             // Siempre revocar: Telcel bloquea la cuenta si se acumulan sesiones SSO abiertas.
@@ -82,14 +87,42 @@ class TelcelClient(private val endpoints: TelcelEndpoints = TelcelEndpoints(), p
             ?: throw TelcelException((json["error"] as? JsonObject).str("description") ?: "Número o contraseña incorrectos")
     }
 
-    private fun exchangeToken(http: OkHttpClient, phone: String, ssoToken: String): String {
+    /**
+     * Intenta con la llave Basic conocida; si Telcel la rechaza, lee la actual de su JavaScript y
+     * reintenta UNA vez. Así el JavaScript (pesado) solo se descarga cuando de verdad cambió la llave.
+     */
+    private fun exchangeTokenWithFreshKey(http: OkHttpClient, phone: String, ssoToken: String): String {
+        val known = keys.get(BASIC_KEY) ?: MTL_BASIC
+        return try {
+            exchangeToken(http, phone, ssoToken, known)
+        } catch (e: TelcelException) {
+            val fresh = runCatching { fetchBasicFromPortal(http) }.getOrNull()
+            if (fresh == null || fresh == known) throw e
+            exchangeToken(http, phone, ssoToken, fresh).also { keys.put(BASIC_KEY, fresh) }
+        }
+    }
+
+    /** Portal -> /assets/index-*.js -> MTL_AUTHORIZATION_BASIC:"…" */
+    private fun fetchBasicFromPortal(http: OkHttpClient): String? {
+        val html = getText(http, "${endpoints.portal}/mitelcel/login") ?: return null
+        val script = Regex("""src="(/assets/index-[^"]+\.js)"""").find(html)?.groupValues?.get(1) ?: return null
+        val js = getText(http, endpoints.portal + script) ?: return null
+        return Regex("""MTL_AUTHORIZATION_BASIC\s*:\s*"([^"]+)"""").find(js)?.groupValues?.get(1)
+    }
+
+    private fun getText(http: OkHttpClient, url: String): String? =
+        http.newCall(Request.Builder().url(url).header("User-Agent", MOBILE_UA).build()).execute().use {
+            if (it.isSuccessful) it.body?.string() else null
+        }
+
+    private fun exchangeToken(http: OkHttpClient, phone: String, ssoToken: String, basic: String): String {
         val url = endpoints.token.toHttpUrl().newBuilder()
             .addQueryParameter("user", phone)
             .addQueryParameter("token", ssoToken)
             .build()
         val request = Request.Builder()
             .url(url)
-            .header("Authorization", "Basic $MTL_BASIC")
+            .header("Authorization", "Basic $basic")
             .header("scope", "token:mit|token:b2f")
             .header("Accept", "application/json")
             .header("Content-Type", "application/json")
@@ -168,6 +201,7 @@ class TelcelClient(private val endpoints: TelcelEndpoints = TelcelEndpoints(), p
     companion object {
         /** Credencial pública de la app web Mi Telcel (no es tuya; viene embebida en su JS). */
         private const val MTL_BASIC = "bXRwc2VydmljZXM6NyQ4N3JmRnN3ZSQyMV8="
+        const val BASIC_KEY = "telcel_basic"
         private const val MOBILE_UA =
             "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
         private val FORM_UTF8 = "application/x-www-form-urlencoded; charset=UTF-8".toMediaType()

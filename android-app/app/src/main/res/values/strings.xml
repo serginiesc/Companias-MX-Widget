@@ -4,7 +4,7 @@
     <string name="app_short_name">Mis Datos</string>
     <string name="widget_description">GB disponibles (Plan + Promo), consumo y fecha de corte</string>
     <string name="gauge_description">Medidor de datos consumidos y disponibles</string>
-    <string name="intro">Agrega una o varias líneas de Telcel o Bait. Las contraseñas se guardan cifradas en tu teléfono y solo se envían a tu compañía.</string>
+    <string name="intro">Agrega una o varias líneas de Telcel, Bait o Movistar. Las contraseñas se guardan cifradas en tu teléfono y solo se envían a tu compañía.</string>
     <string name="phone_hint">Número a 10 dígitos</string>
     <string name="password_hint">Contraseña de Mi Telcel</string>
     <string name="save_and_refresh">Guardar y actualizar</string>
@@ -45,4 +45,9 @@
     <string name="update_checking">Buscando actualizaciones…</string>
     <string name="update_none">Ya tienes la versión más reciente (%1$s).</string>
     <string name="version_label">Versión %1$s</string>
+    <string name="movistar_login">Iniciar sesión en Movistar</string>
+    <string name="movistar_login_hint">Inicia sesión como siempre en Mi Movistar. En cuanto entres, la app guarda tu sesión y regresa sola.</string>
+    <string name="movistar_session_ready">✓ Sesión iniciada. Pulsa Guardar y actualizar.</string>
+    <string name="movistar_session_saved">Sesión guardada. Inicia sesión de nuevo solo si expiró.</string>
+    <string name="movistar_session_needed">Inicia sesión en Movistar antes de guardar.</string>
 </resources>

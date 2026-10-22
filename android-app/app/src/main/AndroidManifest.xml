@@ -30,6 +30,11 @@
             </intent-filter>
         </activity>
 
+        <!-- Login de Movistar en WebView (reCAPTCHA): captura el token de sesión y regresa. -->
+        <activity
+            android:name=".MovistarLoginActivity"
+            android:exported="false" />
+
         <!-- El launcher la abre al agregar un widget: por eso exported=true y la acción APPWIDGET_CONFIGURE. -->
         <activity
             android:name=".WidgetConfigActivity"

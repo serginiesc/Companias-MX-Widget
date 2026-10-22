@@ -1,6 +1,6 @@
 # Mis Datos MX: widget de datos móviles para Android
 
-Widget nativo de Android (Kotlin) que muestra en la pantalla de inicio los **GB disponibles (plan + promociones)**, el consumo, los días restantes y la fecha de corte de tus líneas de **Telcel** y **Bait**. AT&T viene en camino.
+Widget nativo de Android (Kotlin) que muestra en la pantalla de inicio los **GB disponibles (plan + promociones)**, el consumo, los días restantes y la fecha de corte de tus líneas de **Telcel**, **Bait** y **Movistar**. AT&T viene en camino.
 
 > [!WARNING]
 > **App no oficial.** Usa los mismos servicios que la web de cada compañía. Si alguna los cambia, el widget dejará de actualizarse para esa compañía.
@@ -27,7 +27,8 @@ Luego sigue los pasos de [Uso](#uso). Requiere **Android 8.0 o superior**.
 
 ## Características
 
-- **Varias compañías:** Telcel (número y contraseña) y Bait (solo número). Eliges la compañía al agregar cada línea.
+- **Varias compañías:** Telcel (número y contraseña), Bait (solo número) y Movistar (inicias sesión en su portal dentro de la app). Eliges la compañía al agregar cada línea.
+- **Se repara solo si una compañía rota sus llaves:** Telcel, Bait y Movistar usan llaves públicas que vienen en su sitio; si cambian, la app lee la nueva y reintenta.
 - **Varias líneas:** guarda tantas como quieras, cada una con un apodo ("Mía", "Esposa").
 - **Una o dos líneas por widget:** con dos, se muestran lado a lado (recomendado 4×2).
 - **Apariencia por widget:** opacidad del fondo de 0% a 100%, **imagen de fondo** de tu galería y **color de texto** blanco, negro o automático (según tu fondo de pantalla o la imagen).
@@ -68,7 +69,10 @@ Cada push que modifique `android-app/` genera un APK en **Actions → Android AP
 
 ## Uso
 
-1. Abre **Mis Datos MX** y agrega tus líneas: compañía, apodo, número a 10 dígitos y, en Telcel, contraseña. Pulsa **Guardar y actualizar**.
+1. Abre **Mis Datos MX** y agrega tus líneas: compañía, apodo y número a 10 dígitos. Pulsa **Guardar y actualizar**.
+   - **Telcel:** escribe tu contraseña.
+   - **Bait:** no hace falta nada más.
+   - **Movistar:** toca **Iniciar sesión en Movistar** e inicia sesión como siempre (su portal tiene reCAPTCHA). En cuanto entras, la app guarda tu sesión y regresa sola. Si algún día la sesión expira, edita la línea y vuelve a iniciar sesión.
 2. Agrega el widget: mantén presionado el fondo de la pantalla → *Widgets* → *Mis Datos MX*.
 3. Se abre **Configurar widget**:
    - Marca **una o dos líneas** (pueden ser de compañías distintas).
@@ -97,6 +101,7 @@ Cada push que modifique `android-app/` genera un APK en **Actions → Android AP
     │       ├── UsageProvider.kt        Interfaz común + enum Carrier (compañías soportadas)
     │       ├── TelcelClient.kt         Telcel: login SSO → token B2F → consumo (Wave B2F) → revocar SSO
     │       ├── BaitClient.kt           Bait: consulta por número (sin login) + parser de bolsas
+    │       ├── MovistarClient.kt       Movistar: token de sesión → respuesta cifrada AES-256-GCM → bolsas
     │       ├── UpdateChecker.kt        Busca versiones nuevas en GitHub Releases y descarga el APK
     │       ├── HomeFlowParser.kt       Suma las bolsas de datos y extrae fecha y días de corte
     │       └── UsageEntry.kt           Modelo y textos del widget ("9 días", "608 MB/d"…)
@@ -105,6 +110,7 @@ Cada push que modifique `android-app/` genera un APK en **Actions → Android AP
             ├── MainActivity.kt         Administrar líneas (agregar, editar, borrar) y vista previa
             ├── WidgetConfigActivity.kt Elegir líneas, opacidad, color de texto e imagen de cada widget
             ├── UpdateManager.kt        Aviso de versión nueva e instalación (FileProvider)
+            ├── MovistarLoginActivity.kt Portal de Movistar en WebView: captura el token de sesión
             ├── CrashReporter.kt        Guarda el último error que cerró la app
             ├── CrashReportActivity.kt  Muestra ese error para copiarlo
             ├── data/
@@ -200,4 +206,4 @@ Guarda la salida como secreto `DEBUG_KEYSTORE_B64` en **Settings → Secrets and
 
 ## Créditos
 
-- Telcel y Bait: el flujo de autenticación y los parsers están basados en [amaynez/telcel-widget-agy](https://github.com/amaynez/telcel-widget-agy) (widgets para iOS), de Armando Maynez.
+- Telcel, Bait y Movistar: el flujo de autenticación, el descifrado de Movistar y los parsers están basados en [amaynez/telcel-widget-agy](https://github.com/amaynez/telcel-widget-agy) (widgets para iOS), de Armando Maynez.

@@ -111,6 +111,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Bait" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/carrier_movistar"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Movistar" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
         <TextView
@@ -166,6 +174,23 @@
                 android:layout_height="wrap_content"
                 android:inputType="textPassword" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Movistar: en lugar de contraseña, se inicia sesión en su portal (reCAPTCHA) y se guarda el token. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/movistar_login_button"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/movistar_login"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/movistar_session_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/save_button"
