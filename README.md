@@ -45,6 +45,9 @@ Luego sigue los pasos de [Uso](#uso). Requiere **Android 8.0 o superior**.
 
 ---
 
+> [!NOTE]
+> **Movistar está en beta:** el flujo viene del widget de iOS y está probado con un servidor simulado, pero todavía con pocas cuentas reales. Si te falla, abre un [Issue](https://github.com/serginiesc/Companias-MX-Widget/issues) con el mensaje que te aparece y cuánto duró tu sesión. ¡Ayuda mucho!
+
 ## Instalación avanzada
 
 ### Actualizar
@@ -72,7 +75,7 @@ Cada push que modifique `android-app/` genera un APK en **Actions → Android AP
 1. Abre **Mis Datos MX** y agrega tus líneas: compañía, apodo y número a 10 dígitos. Pulsa **Guardar y actualizar**.
    - **Telcel:** escribe tu contraseña.
    - **Bait:** no hace falta nada más.
-   - **Movistar:** toca **Iniciar sesión en Movistar** e inicia sesión como siempre (su portal tiene reCAPTCHA). En cuanto entras, la app guarda tu sesión y regresa sola. Si algún día la sesión expira, edita la línea y vuelve a iniciar sesión.
+   - **Movistar (beta):** toca **Iniciar sesión en Movistar** e inicia sesión como siempre (su portal tiene reCAPTCHA). En cuanto entras, la app guarda tu sesión y regresa sola. Si algún día la sesión expira, edita la línea y vuelve a iniciar sesión.
 2. Agrega el widget: mantén presionado el fondo de la pantalla → *Widgets* → *Mis Datos MX*.
 3. Se abre **Configurar widget**:
    - Marca **una o dos líneas** (pueden ser de compañías distintas).

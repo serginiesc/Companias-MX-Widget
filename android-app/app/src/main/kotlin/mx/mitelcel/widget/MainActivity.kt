@@ -149,6 +149,8 @@ class MainActivity : AppCompatActivity() {
         val web = if (credential == CredentialKind.WEB_SESSION) View.VISIBLE else View.GONE
         findViewById<View>(R.id.movistar_login_button).visibility = web
         findViewById<View>(R.id.movistar_session_text).visibility = web
+        val sessionText = findViewById<TextView>(R.id.movistar_session_text)
+        if (web == View.VISIBLE && capturedToken == null && editingAccount == null) sessionText.setText(R.string.movistar_beta_notice)
         passwordLayout.error = null
     }
 

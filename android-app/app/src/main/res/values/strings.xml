@@ -50,4 +50,6 @@
     <string name="movistar_session_ready">✓ Sesión iniciada. Pulsa Guardar y actualizar.</string>
     <string name="movistar_session_saved">Sesión guardada. Inicia sesión de nuevo solo si expiró.</string>
     <string name="movistar_session_needed">Inicia sesión en Movistar antes de guardar.</string>
+    <string name="carrier_movistar">Movistar (beta)</string>
+    <string name="movistar_beta_notice">Movistar es nuevo y aún no se ha probado con muchas cuentas. Si algo falla, repórtalo en GitHub (Issues) con el mensaje que te salga.</string>
 </resources>
