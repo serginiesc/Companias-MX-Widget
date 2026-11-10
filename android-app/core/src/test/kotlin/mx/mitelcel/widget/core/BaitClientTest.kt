@@ -67,7 +67,7 @@ class BaitClientTest {
         server.enqueue(MockResponse().setBody(fixture))
         server.start()
         try {
-            val entry = BaitClient(baseUrl = server.url("/").toString()).fetchUsage("+52 55 1234 5678", password = null)
+            val entry = BaitClient(baseUrl = server.url("/").toString(), clock = { now }).fetchUsage("+52 55 1234 5678", password = null)
 
             val request = server.takeRequest()
             assertEquals("/api/core/q/dn/5512345678/get/consumption", request.path)
