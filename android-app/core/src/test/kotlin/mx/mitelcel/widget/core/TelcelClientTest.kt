@@ -16,7 +16,7 @@ class TelcelClientTest {
     private lateinit var server: MockWebServer
     private val paths = mutableListOf<String>()
     private var loginResponse = """{"token":"SSO-ABC"}"""
-    private var tokenResponse ="""{"tokenResponse":{"tokens":[{"id":"token:b2f","access_token":"JWT123"}]}}"""
+    private var tokenResponse = """{"tokenResponse":{"tokens":[{"id":"token:b2f","access_token":"JWT123"}]}}"""
 
     private val homeJson = """
         {"blocks":[{"id":"tabs-plans-v2-plan-name-0-0-0","config":{"value":"Plan"}},
