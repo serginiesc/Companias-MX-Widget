@@ -38,7 +38,7 @@ object HomeFlowParser {
         indexComponents(root, byId, suffixes)
 
         val orderedSuffixes = suffixes.sortedWith(SuffixComparator).ifEmpty { listOf("0-0-0") }
-        val buckets = orderedSuffixes.mapNotNull { parseBucket(it, byId) }
+        val buckets = dropSupersededPromos(orderedSuffixes.mapNotNull { parseBucket(it, byId) })
         if (buckets.isEmpty()) throw TelcelException("Respuesta sin bolsas de datos")
 
         // Los días restantes vienen como texto ("Faltan 9 días") en la primera bolsa que lo tenga.
@@ -61,6 +61,19 @@ object HomeFlowParser {
             updatedAt = TIME_FORMAT.format(now.atZone(zone)),
         )
     }
+
+    /**
+     * Al cambiar o renovar plan a mitad de ciclo, Telcel deja la promo anterior con 0 MB disponibles
+     * y su total original, lo que infla el "libres de X GB". Se descarta solo si hay otra promo activa;
+     * el plan base nunca se descarta.
+     */
+    internal fun dropSupersededPromos(buckets: List<BucketUsage>): List<BucketUsage> {
+        val isBase = { b: BucketUsage -> BASE_BUCKET.matches(b.id) }
+        val hasActivePromo = buckets.any { !isBase(it) && it.availableMB > 0 }
+        return buckets.filter { isBase(it) || it.availableMB > 0 || !hasActivePromo }
+    }
+
+    private val BASE_BUCKET = Regex("""^(web-)?0-0-0$""")
 
     private fun indexComponents(node: JsonElement, byId: MutableMap<String, JsonObject>, suffixes: MutableSet<String>) {
         when (node) {

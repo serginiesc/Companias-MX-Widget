@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.Cookie
 import okhttp3.CookieJar
+import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -24,10 +25,12 @@ data class TelcelEndpoints(
     val revoke: String = "https://dev.smapps.mx:9000/sso/revoke",
     /** Portal web: de su JavaScript se lee la llave Basic vigente si Telcel la rota. */
     val portal: String = "https://www.mitelcel.com",
+    /** Login alterno (OIDC) que se usa cuando el antibots F5 deja vacía la respuesta de [login]. */
+    val oidc: String = "https://www.mitelcel.com/oid-authorize-prod",
 )
 
 /**
- * Flujo de 4 pasos: WebLogin SSO -> JWT B2F -> Wave B2F Home -> Revocar SSO.
+ * Flujo de 4 pasos: WebLogin SSO (o OIDC de respaldo) -> JWT B2F -> Wave B2F Home -> Revocar SSO.
  *
  * IMPORTANTE: [fetchUsage] es bloqueante (hace red). Llámalo solo desde un hilo de fondo
  * (Worker o Dispatchers.IO); en el hilo principal Android lanza NetworkOnMainThreadException.
@@ -55,7 +58,23 @@ class TelcelClient(
         }
     }
 
+    /**
+     * Desde nov 2026 el WebLogin 8443 tiene F5 Bot Defense: a veces responde con cuerpo vacío.
+     * - Con token: listo.
+     * - Con objeto `error`: contraseña mala. NO se intenta OIDC (dos intentos fallidos acercan el bloqueo).
+     * - Vacío o no-JSON: lo bloqueó el antibots, se intenta UNA vez el login OIDC.
+     */
     private fun login(http: OkHttpClient, phone: String, password: String): String {
+        val json = webLogin(http, phone, password)
+        json.str("token")?.let { return it }
+        (json?.get("error") as? JsonObject)?.let { error ->
+            throw TelcelException(error.str("description") ?: "Número o contraseña incorrectos")
+        }
+        return oidcLogin(http, phone, password)
+    }
+
+    /** Devuelve el JSON del WebLogin, o null si la respuesta vino vacía o no es JSON (antibots). */
+    private fun webLogin(http: OkHttpClient, phone: String, password: String): JsonObject? {
         val passB64 = Base64.getEncoder().encodeToString(password.replace(Regex("""\s+"""), "").toByteArray())
         val body = listOf(
             "username=${enc(phone)}",
@@ -82,9 +101,57 @@ class TelcelClient(
             .post(body.toRequestBody(FORM_UTF8))
             .build()
 
-        val json = executeJson(http, request, "login")
-        return json.str("token")
-            ?: throw TelcelException((json["error"] as? JsonObject).str("description") ?: "Número o contraseña incorrectos")
+        return http.newCall(request).execute().use { resp ->
+            runCatching { Json.parseToJsonElement(resp.body?.string().orEmpty()) as JsonObject }.getOrNull()
+        }
+    }
+
+    /**
+     * Login OIDC de la app oficial: authorize (usuario y contraseña en headers) -> `code` -> token.
+     * El access_token que devuelve es un token SSO normal: los pasos siguientes no cambian.
+     */
+    private fun oidcLogin(http: OkHttpClient, phone: String, password: String): String {
+        val authorizeUrl = "${endpoints.oidc}/authorize".toHttpUrl().newBuilder()
+            .addQueryParameter("client_id", OIDC_CLIENT_ID)
+            .addQueryParameter("response_type", "code")
+            .addQueryParameter("scope", "openid")
+            .addQueryParameter("redirect_uri", OIDC_REDIRECT_URI)
+            .addQueryParameter("acr_values", "1")
+            .addQueryParameter("state", "M1T3c3L")
+            .addQueryParameter("nonce", "MiTelcel7007")
+            .build()
+        val authHeaders = Headers.Builder()
+            .add("USERNAME", "52$phone")
+            // addUnsafeNonAscii: con add() una contraseña con "ñ" o acentos lanzaría IllegalArgumentException.
+            .addUnsafeNonAscii("PASSWORD", password)
+            .add("Accept", "application/json")
+            .add("Accept-Charset", "UTF-8")
+            .add("User-Agent", MOBILE_UA)
+            .build()
+
+        // Sin seguir redirecciones: el `code` viene en el header Location del 302, no en la página final.
+        val noRedirects = http.newBuilder().followRedirects(false).followSslRedirects(false).build()
+        val location = noRedirects.newCall(Request.Builder().url(authorizeUrl).headers(authHeaders).build()).execute().use { resp ->
+            if (resp.code >= 400) throw TelcelException("Número o contraseña incorrectos (HTTP ${resp.code})")
+            resp.header("x-oidc-redirect-location") ?: resp.header("Location") ?: resp.body?.string().orEmpty()
+        }
+        val code = Regex("""(?:^|[?&])code=([^&\s"]+)""").find(location)?.groupValues?.get(1)
+            ?: throw TelcelException("Número o contraseña incorrectos")
+
+        val tokenBody = listOf(
+            "grant_type=authorization_code",
+            "redirect_uri=${enc(OIDC_REDIRECT_URI)}",
+            "client_id=$OIDC_CLIENT_ID",
+            "code=${enc(code)}",
+        ).joinToString("&")
+        val tokenRequest = Request.Builder()
+            .url("${endpoints.oidc}/token")
+            .header("Accept", "application/json")
+            .header("User-Agent", MOBILE_UA)
+            .post(tokenBody.toRequestBody(FORM))
+            .build()
+        val json = executeJson(http, tokenRequest, "login OIDC")
+        return json.str("access_token") ?: json.str("token") ?: throw TelcelException("No se obtuvo token SSO")
     }
 
     /**
@@ -202,6 +269,10 @@ class TelcelClient(
         /** Credencial pública de la app web Mi Telcel (no es tuya; viene embebida en su JS). */
         private const val MTL_BASIC = "bXRwc2VydmljZXM6NyQ4N3JmRnN3ZSQyMV8="
         const val BASIC_KEY = "telcel_basic"
+
+        /** Cliente público OIDC de la app Mi Telcel (viene en su código, no es un secreto tuyo). */
+        private const val OIDC_CLIENT_ID = "31f419f6-5446-4e7e-a275-daf60f568698"
+        private const val OIDC_REDIRECT_URI = "https://mtl.smapps.mx:1333/sso/callback"
         private const val MOBILE_UA =
             "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
         private val FORM_UTF8 = "application/x-www-form-urlencoded; charset=UTF-8".toMediaType()

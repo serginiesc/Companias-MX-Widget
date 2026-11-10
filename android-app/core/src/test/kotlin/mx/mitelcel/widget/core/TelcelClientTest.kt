@@ -15,7 +15,8 @@ import org.junit.Test
 class TelcelClientTest {
     private lateinit var server: MockWebServer
     private val paths = mutableListOf<String>()
-    private var tokenResponse = """{"tokenResponse":{"tokens":[{"id":"token:b2f","access_token":"JWT123"}]}}"""
+    private var loginResponse = """{"token":"SSO-ABC"}"""
+    private var tokenResponse ="""{"tokenResponse":{"tokens":[{"id":"token:b2f","access_token":"JWT123"}]}}"""
 
     private val homeJson = """
         {"blocks":[{"id":"tabs-plans-v2-plan-name-0-0-0","config":{"value":"Plan"}},
@@ -30,7 +31,10 @@ class TelcelClientTest {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 paths += request.path!!.substringBefore('?')
                 return when (request.path!!.substringBefore('?')) {
-                    "/login" -> MockResponse().setBody("""{"token":"SSO-ABC"}""")
+                    "/login" -> MockResponse().setBody(loginResponse)
+                    "/oid/authorize" -> MockResponse().setResponseCode(302)
+                        .setHeader("Location", "https://mtl.smapps.mx:1333/sso/callback?code=CODE-1&state=M1T3c3L")
+                    "/oid/token" -> MockResponse().setBody("""{"access_token":"SSO-OIDC"}""")
                     "/token" -> MockResponse().setBody(tokenResponse)
                     "/home" -> MockResponse().setBody(homeJson)
                     "/revoke" -> MockResponse().setBody("{}")
@@ -50,8 +54,37 @@ class TelcelClientTest {
             token = server.url("/token").toString(),
             home = server.url("/home").toString(),
             revoke = server.url("/revoke").toString(),
+            oidc = server.url("/oid").toString(),
         ),
     )
+
+    @Test
+    fun `si el antibots deja vacío el login usa OIDC y sigue el flujo normal`() {
+        loginResponse = ""
+
+        client().fetchUsage("5512345678", "contraseña")
+
+        assertEquals(listOf("/login", "/oid/authorize", "/oid/token", "/token", "/home", "/revoke"), paths)
+        server.takeRequest() // /login
+        val authorize = server.takeRequest()
+        assertEquals("525512345678", authorize.getHeader("USERNAME"))
+        val oidcToken = server.takeRequest()
+        assertTrue(oidcToken.body.readUtf8().contains("code=CODE-1"))
+        // El access_token de OIDC se usa como token SSO en el intercambio y en la revocación.
+        assertTrue(server.takeRequest().path!!.contains("token=SSO-OIDC"))
+        server.takeRequest() // /home
+        assertEquals("token=SSO-OIDC&token_type=revoke", server.takeRequest().body.readUtf8())
+    }
+
+    @Test
+    fun `contraseña incorrecta no intenta OIDC`() {
+        loginResponse = """{"error":{"description":"Contraseña incorrecta"}}"""
+
+        val e = assertThrows(TelcelException::class.java) { client().fetchUsage("5512345678", "mala") }
+
+        assertEquals("Contraseña incorrecta", e.message)
+        assertEquals(listOf("/login"), paths)
+    }
 
     @Test
     fun `flujo completo y revoca la sesión al final`() {
