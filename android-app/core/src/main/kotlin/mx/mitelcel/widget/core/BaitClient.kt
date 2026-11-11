@@ -23,6 +23,8 @@ class BaitClient(
     private val baseUrl: String = "https://mibait.com",
     private val http: OkHttpClient = TelcelClient.DEFAULT_HTTP,
     private val keys: KeyCache = InMemoryKeyCache(),
+    /** Reloj inyectable: las pruebas fijan la fecha para que las promos del fixture no "venzan" solas. */
+    private val clock: () -> Instant = Instant::now,
 ) : UsageProvider {
 
     override fun fetchUsage(rawPhone: String, password: String?): UsageEntry {
@@ -56,7 +58,7 @@ class BaitClient(
         http.newCall(request).execute().use { resp ->
             val body = resp.body?.string().orEmpty()
             if (resp.code != 200 && body.isBlank()) throw TelcelException("Bait respondió HTTP ${resp.code}")
-            return BaitParser.parse(body)
+            return BaitParser.parse(body, clock())
         }
     }
 

@@ -78,6 +78,17 @@ class HomeFlowParserTest {
     }
 
     @Test
+    fun `al renovar descarta la promo vieja en 0 si hay otra promo activa`() {
+        val base = BucketUsage("0-0-0", "Plan", 1000.0, 3000.0, 2000.0)
+        val vieja = BucketUsage("0-1-0", "Promo anterior", 5000.0, 5000.0, 0.0)
+        val nueva = BucketUsage("0-2-0", "Promo nueva", 0.0, 5000.0, 5000.0)
+
+        assertEquals(listOf(base, nueva), HomeFlowParser.dropSupersededPromos(listOf(base, vieja, nueva)))
+        // Sin otra promo activa, la que se acabó sigue contando (sí la gastaste en este ciclo).
+        assertEquals(listOf(base, vieja), HomeFlowParser.dropSupersededPromos(listOf(base, vieja)))
+    }
+
+    @Test
     fun `normaliza el teléfono a 10 dígitos`() {
         assertEquals("5512345678", TelcelClient.normalizePhone("+52 (55) 1234-5678"))
     }
