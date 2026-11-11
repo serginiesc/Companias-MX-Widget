@@ -34,13 +34,19 @@ object Forecaster {
     private const val MAX_RATE_WINDOW_DAYS = 7L
     private const val MIN_HISTORY_HOURS = 20L
 
+    /** Sin historial, el ritmo de los primeros días del ciclo engaña (un día fuerte lo infla todo). */
+    internal const val MIN_ELAPSED_DAYS = 3
+
+    /** Holgura: si se acabaría a menos de esto antes del corte, no se alarma (casi te alcanza). */
+    internal const val TOLERANCE_DAYS = 2.0
+
     fun forecast(entry: UsageEntry, history: List<UsageSample>, now: Instant, zone: ZoneId): Forecast {
         if (entry.totalMB <= 0) return Forecast.Unknown
         val rate = measuredRate(entry, history, now) ?: estimatedRate(entry) ?: return Forecast.Unknown
         if (rate <= 0.0) return Forecast.Enough
 
         val daysToEmpty = maxOf(0.0, entry.availableMB) / rate
-        if (daysToEmpty >= entry.daysLeft) return Forecast.Enough
+        if (daysToEmpty >= entry.daysLeft - TOLERANCE_DAYS) return Forecast.Enough
         val today = now.atZone(zone).toLocalDate()
         return Forecast.RunsOut(today.plusDays(floor(daysToEmpty).toLong()))
     }
@@ -62,10 +68,13 @@ object Forecaster {
         return (entry.consumedMB - oldest.consumedMB) / (hours / 24.0)
     }
 
-    /** Sin historial: consumo total / días transcurridos del ciclo (supone ciclos de 30 días). */
+    /**
+     * Sin historial: consumo total / días transcurridos del ciclo (supone ciclos de 30 días).
+     * También es lo que se usa justo después de renovar, porque [measuredRate] descarta el ciclo anterior.
+     */
     internal fun estimatedRate(entry: UsageEntry): Double? {
         val elapsed = DEFAULT_CYCLE_DAYS - entry.daysLeft
-        if (elapsed < 1) return null
+        if (elapsed < MIN_ELAPSED_DAYS) return null
         return entry.consumedMB / elapsed
     }
 }
@@ -97,12 +106,15 @@ object Freshness {
     fun shortDate(date: LocalDate): String = "${date.dayOfMonth} ${MONTHS[date.monthValue - 1]}"
 }
 
-/** Pie de página del widget: pronóstico + hora, o aviso de dato viejo. */
+/** Pie de página del widget: pronóstico + hora, o aviso de dato viejo (con la razón, si se sabe). */
 object StatusLine {
-    fun of(entry: UsageEntry, forecast: Forecast, now: Instant, zone: ZoneId): String {
+    /** @param lastError razón corta del último fallo ([RefreshError.shortReason]); null si la última consulta salió bien. */
+    fun of(entry: UsageEntry, forecast: Forecast, now: Instant, zone: ZoneId, lastError: String? = null): String {
         val time = Freshness.label(entry.timestampMillis, now, zone)
-        if (entry.timestampMillis <= 0) return entry.planName // sin datos aún: "Sin conexión o credenciales"
-        if (Freshness.isStale(entry.timestampMillis, now)) return "☁ Sin actualizar desde $time"
+        if (entry.timestampMillis <= 0) return lastError ?: entry.planName // sin datos aún
+        if (Freshness.isStale(entry.timestampMillis, now)) {
+            return if (lastError != null) "☁ $time · $lastError" else "☁ Sin actualizar desde $time"
+        }
         return when (forecast) {
             Forecast.Enough -> "✓ Te alcanza · $time"
             is Forecast.RunsOut -> "⚠ Se acaba ~${Freshness.shortDate(forecast.date)} · $time"

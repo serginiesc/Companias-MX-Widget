@@ -68,7 +68,7 @@ class TelcelClient(
         val json = webLogin(http, phone, password)
         json.str("token")?.let { return it }
         (json?.get("error") as? JsonObject)?.let { error ->
-            throw TelcelException(error.str("description") ?: "Número o contraseña incorrectos")
+            throw InvalidCredentialsException(error.str("description") ?: "Número o contraseña incorrectos")
         }
         return oidcLogin(http, phone, password)
     }
@@ -132,11 +132,19 @@ class TelcelClient(
         // Sin seguir redirecciones: el `code` viene en el header Location del 302, no en la página final.
         val noRedirects = http.newBuilder().followRedirects(false).followSslRedirects(false).build()
         val location = noRedirects.newCall(Request.Builder().url(authorizeUrl).headers(authHeaders).build()).execute().use { resp ->
-            if (resp.code >= 400) throw TelcelException("Número o contraseña incorrectos (HTTP ${resp.code})")
+            when {
+                resp.code == 401 || resp.code == 403 -> throw InvalidCredentialsException("Número o contraseña incorrectos")
+                resp.code >= 400 -> throw LoginBlockedException("Telcel rechazó el inicio de sesión (HTTP ${resp.code})")
+            }
             resp.header("x-oidc-redirect-location") ?: resp.header("Location") ?: resp.body?.string().orEmpty()
         }
         val code = Regex("""(?:^|[?&])code=([^&\s"]+)""").find(location)?.groupValues?.get(1)
-            ?: throw TelcelException("Número o contraseña incorrectos")
+            ?: if (location.contains("error=")) {
+                // OIDC regresa ?error=access_denied cuando la contraseña es mala.
+                throw InvalidCredentialsException("Número o contraseña incorrectos")
+            } else {
+                throw LoginBlockedException("Telcel no devolvió el código de inicio de sesión")
+            }
 
         val tokenBody = listOf(
             "grant_type=authorization_code",

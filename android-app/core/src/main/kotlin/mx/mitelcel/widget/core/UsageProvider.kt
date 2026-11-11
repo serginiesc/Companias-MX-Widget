@@ -41,6 +41,26 @@ interface UsageProvider {
 /** La sesión web (ej. Movistar) caducó: hay que volver a iniciar sesión en la app. No se reintenta. */
 class SessionExpiredException(message: String) : TelcelException(message)
 
+/** La compañía dijo que el número o la contraseña no son válidos. No se reintenta (bloquearía la cuenta). */
+class InvalidCredentialsException(message: String) : TelcelException(message)
+
+/** La compañía rechazó el inicio de sesión sin culpar la contraseña (antibots, 5xx). Suele ser temporal. */
+class LoginBlockedException(message: String) : TelcelException(message)
+
+/**
+ * Razón corta del último fallo, para el pie del widget (ahí no cabe el mensaje completo).
+ * El mensaje completo se sigue mostrando dentro de la app.
+ */
+object RefreshError {
+    fun shortReason(error: Throwable): String = when (error) {
+        is java.io.IOException -> "Sin conexión"
+        is InvalidCredentialsException -> "Revisa la contraseña"
+        is LoginBlockedException -> "La compañía bloqueó el acceso"
+        is SessionExpiredException -> "Inicia sesión de nuevo"
+        else -> "Error de la compañía"
+    }
+}
+
 /**
  * Guarda llaves PÚBLICAS que las compañías publican en el JavaScript de su sitio y a veces rotan
  * (Telcel: Basic auth; Bait: x-ord-service; Movistar: guardString). No son secretos del usuario.

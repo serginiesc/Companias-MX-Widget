@@ -10,6 +10,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.time.Instant
 
 /**
  * Telcel y Bait usan una llave PÚBLICA que viene en el JavaScript de su sitio. Si la rotan, la app
@@ -110,7 +111,7 @@ class KeyRefreshTest {
     fun `Bait lee el xOrdService nuevo de su JavaScript y reintenta`() {
         val keys = InMemoryKeyCache()
 
-        val entry = BaitClient(baseUrl = server.url("/bait/").toString(), keys = keys).fetchUsage("5512345678", null)
+        val entry = BaitClient(baseUrl = server.url("/bait/").toString(), keys = keys, clock = { FIXED_NOW }).fetchUsage("5512345678", null)
 
         assertEquals(1024.0, entry.totalMB, 0.001)
         assertEquals(currentBaitKey, keys.get(BaitClient.SERVICE_KEY))
@@ -122,10 +123,15 @@ class KeyRefreshTest {
 
         // Número que Bait no conoce (404): el sitio anuncia la misma llave, así que no hay nada que reintentar.
         val e = assertThrows(TelcelException::class.java) {
-            BaitClient(baseUrl = server.url("/bait/").toString(), keys = keys).fetchUsage("5500000000", null)
+            BaitClient(baseUrl = server.url("/bait/").toString(), keys = keys, clock = { FIXED_NOW }).fetchUsage("5500000000", null)
         }
 
         assertTrue(e.message!!.contains("404"))
         assertEquals(1, paths.count { it.endsWith("/get/consumption") })
+    }
+
+    private companion object {
+        /** Antes del vencimiento del fixture (1 nov 2026): la prueba no depende del día en que corre. */
+        val FIXED_NOW: Instant = Instant.parse("2026-10-20T12:00:00Z")
     }
 }

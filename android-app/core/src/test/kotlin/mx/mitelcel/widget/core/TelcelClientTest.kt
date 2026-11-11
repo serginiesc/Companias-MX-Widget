@@ -16,6 +16,8 @@ class TelcelClientTest {
     private lateinit var server: MockWebServer
     private val paths = mutableListOf<String>()
     private var loginResponse = """{"token":"SSO-ABC"}"""
+    private var oidcAuthorizeResponse = MockResponse().setResponseCode(302)
+        .setHeader("Location", "https://mtl.smapps.mx:1333/sso/callback?code=CODE-1&state=M1T3c3L")
     private var tokenResponse = """{"tokenResponse":{"tokens":[{"id":"token:b2f","access_token":"JWT123"}]}}"""
 
     private val homeJson = """
@@ -32,8 +34,7 @@ class TelcelClientTest {
                 paths += request.path!!.substringBefore('?')
                 return when (request.path!!.substringBefore('?')) {
                     "/login" -> MockResponse().setBody(loginResponse)
-                    "/oid/authorize" -> MockResponse().setResponseCode(302)
-                        .setHeader("Location", "https://mtl.smapps.mx:1333/sso/callback?code=CODE-1&state=M1T3c3L")
+                    "/oid/authorize" -> oidcAuthorizeResponse
                     "/oid/token" -> MockResponse().setBody("""{"access_token":"SSO-OIDC"}""")
                     "/token" -> MockResponse().setBody(tokenResponse)
                     "/home" -> MockResponse().setBody(homeJson)
@@ -80,10 +81,28 @@ class TelcelClientTest {
     fun `contraseña incorrecta no intenta OIDC`() {
         loginResponse = """{"error":{"description":"Contraseña incorrecta"}}"""
 
-        val e = assertThrows(TelcelException::class.java) { client().fetchUsage("5512345678", "mala") }
+        val e = assertThrows(InvalidCredentialsException::class.java) { client().fetchUsage("5512345678", "mala") }
 
         assertEquals("Contraseña incorrecta", e.message)
+        assertEquals("Revisa la contraseña", RefreshError.shortReason(e))
         assertEquals(listOf("/login"), paths)
+    }
+
+    @Test
+    fun `si OIDC también falla con 5xx es bloqueo y no culpa a la contraseña`() {
+        loginResponse = ""
+        oidcAuthorizeResponse = MockResponse().setResponseCode(503)
+
+        val e = assertThrows(LoginBlockedException::class.java) { client().fetchUsage("5512345678", "contraseña") }
+
+        assertEquals("La compañía bloqueó el acceso", RefreshError.shortReason(e))
+    }
+
+    @Test
+    fun `razón corta para el widget según el tipo de error`() {
+        assertEquals("Sin conexión", RefreshError.shortReason(java.io.IOException("timeout")))
+        assertEquals("Inicia sesión de nuevo", RefreshError.shortReason(SessionExpiredException("x")))
+        assertEquals("Error de la compañía", RefreshError.shortReason(TelcelException("x")))
     }
 
     @Test

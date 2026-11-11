@@ -25,8 +25,19 @@ class UsageCache(context: Context) {
     }
 
     fun delete(accountId: String) {
-        prefs.edit().remove(key(accountId)).apply()
+        prefs.edit().remove(key(accountId)).remove(errorKey(accountId)).apply()
     }
+
+    /** Razón corta del último fallo; se borra en cuanto una consulta sale bien. */
+    fun saveError(accountId: String, reason: String) {
+        prefs.edit().putString(errorKey(accountId), reason).apply()
+    }
+
+    fun clearError(accountId: String) {
+        prefs.edit().remove(errorKey(accountId)).apply()
+    }
+
+    fun lastError(accountId: String): String? = prefs.getString(errorKey(accountId), null)
 
     private fun read(accountId: String): UsageEntry? {
         val raw = prefs.getString(key(accountId), null) ?: return null
@@ -34,4 +45,6 @@ class UsageCache(context: Context) {
     }
 
     private fun key(accountId: String) = "entry_$accountId"
+
+    private fun errorKey(accountId: String) = "error_$accountId"
 }
