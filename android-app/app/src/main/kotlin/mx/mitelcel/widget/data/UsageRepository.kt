@@ -5,6 +5,7 @@ import mx.mitelcel.widget.core.BaitClient
 import mx.mitelcel.widget.core.Carrier
 import mx.mitelcel.widget.core.KeyCache
 import mx.mitelcel.widget.core.MovistarClient
+import mx.mitelcel.widget.core.RefreshError
 import mx.mitelcel.widget.core.TelcelClient
 import mx.mitelcel.widget.core.UsageEntry
 import mx.mitelcel.widget.core.UsageProvider
@@ -49,18 +50,24 @@ class UsageRepository(
 
             val account = accounts.get(accountId)
                 ?: return RefreshResult(UsageEntry.errorFallback, "La línea ya no existe")
-            val password = accounts.password(accountId)
-                ?: return RefreshResult(cachedOrFallback(accountId), "Vuelve a escribir la contraseña de ${account.alias}")
+            val password = accounts.password(accountId) ?: run {
+                cache.saveError(accountId, "Revisa la contraseña")
+                return RefreshResult(cachedOrFallback(accountId), "Vuelve a escribir la contraseña de ${account.alias}")
+            }
 
             return try {
                 val entry = providers(account.carrier).fetchUsage(account.phone, password)
                 cache.save(accountId, entry)
+                cache.clearError(accountId)
                 history.record(accountId, entry)
                 RefreshResult(entry)
             } catch (e: IOException) {
                 // OkHttp lanza IOException cuando no hay red o se agota el tiempo.
+                cache.saveError(accountId, RefreshError.shortReason(e))
                 RefreshResult(cachedOrFallback(accountId), "Sin conexión", retryable = true)
             } catch (e: Exception) {
+                // El widget muestra la razón corta; la app, el mensaje completo.
+                cache.saveError(accountId, RefreshError.shortReason(e))
                 RefreshResult(cachedOrFallback(accountId), e.message ?: "Error de la compañía")
             }
         }

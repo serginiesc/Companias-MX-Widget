@@ -28,7 +28,7 @@ jobs:
         working-directory: android-app
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-java@v5
         with:
@@ -40,7 +40,7 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           test -d "$ANDROID_HOME" || { echo "::error::El runner no trae Android SDK"; exit 1; }
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       # Firma siempre con la MISMA llave para poder actualizar la app sin desinstalarla.
       # Sin este secreto, cada ejecución genera una llave nueva y Android rechaza la actualización.
@@ -124,7 +124,7 @@ jobs:
           fi
 
       - name: Publicar APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: CompaniasMxWidget-apk
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
@@ -151,7 +151,7 @@ jobs:
 
       - name: Publicar reporte de pruebas (si fallan)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-reports
           path: |
@@ -166,7 +166,7 @@ jobs:
     permissions:
       contents: write # único job con permiso de escritura (mínimo privilegio)
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: CompaniasMxWidget-apk
 
@@ -174,7 +174,7 @@ jobs:
       # actualización dentro de la app (UpdateChecker.APK_NAME) dependen de él. No lo cambies sin cambiar ambos.
       - run: mv app-debug.apk CompaniasMxWidget.apk
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: CompaniasMxWidget.apk
           generate_release_notes: true

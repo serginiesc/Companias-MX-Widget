@@ -25,7 +25,14 @@ import java.time.Instant
 import java.time.ZoneId
 
 /** Lo que se dibuja de UNA línea dentro del widget. */
-data class Panel(val entry: UsageEntry, val title: String, val accountId: String? = null, val forecast: Forecast = Forecast.Unknown)
+data class Panel(
+    val entry: UsageEntry,
+    val title: String,
+    val accountId: String? = null,
+    val forecast: Forecast = Forecast.Unknown,
+    /** Razón corta del último fallo (null si la última consulta salió bien). */
+    val lastError: String? = null,
+)
 
 /**
  * Convierte datos en la vista del widget. No sabe nada de red.
@@ -126,7 +133,8 @@ object WidgetRenderer {
         }
         views.setTextViewText(R.id.widget_spent, entry.spentLine)
         views.setTextViewText(R.id.widget_daily, entry.dailyLine)
-        views.setTextViewText(R.id.widget_footer, statusText ?: StatusLine.of(entry, panel.forecast, now, ZoneId.systemDefault()))
+        val footer = statusText ?: StatusLine.of(entry, panel.forecast, now, ZoneId.systemDefault(), panel.lastError)
+        views.setTextViewText(R.id.widget_footer, footer)
         // Dato viejo: el medidor/barra se atenúa para que no se lea como si fuera actual.
         views.setInt(R.id.widget_gauge, "setImageAlpha", if (stale) 110 else 255)
 
@@ -140,9 +148,10 @@ object WidgetRenderer {
 
     /** Panel de una línea con su último dato y su pronóstico. Lo usan el widget y las vistas previas. */
     fun panelFor(context: Context, account: Account, entry: UsageEntry? = null): Panel {
-        val data = entry ?: UsageCache(context).load(account.id) ?: UsageEntry.errorFallback
+        val cache = UsageCache(context)
+        val data = entry ?: cache.load(account.id) ?: UsageEntry.errorFallback
         val forecast = Forecaster.forecast(data, UsageHistoryStore(context).samples(account.id), Instant.now(), ZoneId.systemDefault())
-        return Panel(data, account.alias, account.id, forecast)
+        return Panel(data, account.alias, account.id, forecast, cache.lastError(account.id))
     }
 
     /** Redibuja un widget con las líneas y opacidad que tiene configuradas. */

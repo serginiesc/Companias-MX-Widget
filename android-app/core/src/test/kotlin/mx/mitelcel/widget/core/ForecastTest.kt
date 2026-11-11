@@ -67,6 +67,27 @@ class ForecastTest {
     }
 
     @Test
+    fun `recién renovado no alarma aunque el primer día haya sido fuerte`() {
+        // Caso real "Trabajo": 760 MB gastados de 15.5 GB, quedan 29 días (1 día transcurrido).
+        // Sin período de gracia daba 760 MB/día -> "se acaba ~26 nov" en amarillo con 95% libre.
+        assertEquals(Forecast.Unknown, Forecaster.forecast(entry(760.0, 29, total = 15872.0), emptyList(), now, zone))
+        assertNull(Forecaster.estimatedRate(entry(760.0, 28)))
+        assertEquals(380.0, Forecaster.estimatedRate(entry(1140.0, 27))!!, 0.01) // día 3: ya se estima
+    }
+
+    @Test
+    fun `si casi alcanza no alarma`() {
+        // 20 días transcurridos, 6900 MB -> 345 MB/día; quedan 3100 MB -> 8.99 días para 10 al corte.
+        // Faltaría ~1 día: dentro de la holgura de 2 días, así que no se pinta amarillo.
+        assertEquals(Forecast.Enough, Forecaster.forecast(entry(6900.0, 10), emptyList(), now, zone))
+        // 7500 MB -> 375 MB/día; quedan 2500 -> 6.7 días: faltan 3.3, eso sí avisa.
+        assertEquals(
+            Forecast.RunsOut(LocalDate.of(2026, 10, 26)),
+            Forecaster.forecast(entry(7500.0, 10), emptyList(), now, zone),
+        )
+    }
+
+    @Test
     fun `al inicio del ciclo o sin plan no se puede saber`() {
         assertEquals(Forecast.Unknown, Forecaster.forecast(entry(0.0, 30), emptyList(), now, zone))
         assertEquals(Forecast.Unknown, Forecaster.forecast(entry(0.0, 10, total = 0.0), emptyList(), now, zone))
@@ -92,6 +113,10 @@ class ForecastTest {
         val old = fresh.copy(timestampMillis = now.minus(5, ChronoUnit.HOURS).toEpochMilli())
         assertTrue(Freshness.isStale(old.timestampMillis, now))
         assertEquals("☁ Sin actualizar desde hoy 07:00", StatusLine.of(old, Forecast.Enough, now, zone))
+        // Con la razón del último fallo, el widget dice POR QUÉ no se actualizó.
+        assertEquals("☁ hoy 07:00 · Revisa la contraseña", StatusLine.of(old, Forecast.Enough, now, zone, "Revisa la contraseña"))
+        // Si el dato todavía está vigente, manda el pronóstico aunque haya fallado una consulta reciente.
+        assertEquals("✓ Te alcanza · hoy 12:00", StatusLine.of(fresh, Forecast.Enough, now, zone, "Sin conexión"))
     }
 
     @Test

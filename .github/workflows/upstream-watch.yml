@@ -1,0 +1,52 @@
+# Avisa cuando amaynez/telcel-widget-agy (de donde salen los flujos de las compañías) cambia su lógica.
+# Así te enteras ANTES de que se caiga el widget: el antibots de Telcel (nov 2026) se arregló allá el
+# mismo día, pero aquí se notó dos días después, con el widget ya caído.
+name: Vigilar cambios en upstream
+
+on:
+  schedule:
+    - cron: "17 14 * * 1" # lunes 08:17 hora de CDMX (14:17 UTC)
+  workflow_dispatch: # para probarlo a mano desde la pestaña Actions
+
+permissions:
+  issues: write # único permiso: abrir el aviso
+
+jobs:
+  watch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Buscar commits de la última semana en la lógica de las compañías
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM: amaynez/telcel-widget-agy
+        run: |
+          since=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          # src/ = scripts JS (Telcel, Movistar, Bait, AT&T); MiTelcelWidget/ = versión iOS en Swift.
+          : > commits.txt
+          for path in src MiTelcelWidget; do
+            gh api "repos/$UPSTREAM/commits?path=$path&since=$since&per_page=50" \
+              --jq '.[] | "- [`\(.sha[0:7])`](\(.html_url)) \(.commit.message | split("\n")[0])"' >> commits.txt
+          done
+          sort -u commits.txt -o commits.txt
+
+          if [ ! -s commits.txt ]; then
+            echo "Sin cambios en upstream esta semana."
+            exit 0
+          fi
+
+          title="Upstream cambió la lógica de las compañías (semana del $(date -u +%Y-%m-%d))"
+          # No duplicar: si ya hay un aviso abierto con el mismo título, no se abre otro.
+          if gh issue list -R "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq 'length' | grep -qv '^0$'; then
+            echo "Ya existe un aviso abierto para esta semana."
+            exit 0
+          fi
+
+          {
+            echo "Hubo commits en [$UPSTREAM](https://github.com/$UPSTREAM) que tocan la lógica de las compañías."
+            echo "Revisa si alguno corrige un login o un cambio de API que también afecte a la app:"
+            echo
+            cat commits.txt
+            echo
+            echo "Los que digan \`fix(telcel)\`, \`fix(movistar)\`, \`login\`, \`token\` o \`API\` suelen ser los urgentes."
+          } > body.md
+          gh issue create -R "$GITHUB_REPOSITORY" --title "$title" --body-file body.md
